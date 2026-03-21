@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { Shield, CheckCircle2, Copy, ExternalLink, ChevronRight, Plus, Trash2, Lock, Layers, Hash, Calendar } from 'lucide-react'
+import api from '../utils/api'
 
 const PLATFORMS = ['Swiggy','Uber','Zomato','Ola','Blinkit','Dunzo','Zepto','Porter']
 const STEP_LABELS = ['Worker Info','Platforms','Earnings','Generate']
@@ -46,9 +47,13 @@ function StepIndicator({step,total=4}) {
   )
 }
 
-function PassportCard({name,passportId,platforms,days,status}) {
+function PassportCard({ passport }) {
   const [copied,setCopied] = useState(false)
-  const copy = () => { navigator.clipboard.writeText(passportId||'GS-IND-22091'); setCopied(true); setTimeout(()=>setCopied(false),2000) }
+  const copy = () => {
+    navigator.clipboard.writeText(passport?.passportId || '')
+    setCopied(true)
+    setTimeout(()=>setCopied(false),2000)
+  }
   return (
     <div className="grad-border p-5 mb-4" style={{borderRadius:16}}>
       <div className="flex items-start justify-between mb-4">
@@ -58,13 +63,13 @@ function PassportCard({name,passportId,platforms,days,status}) {
           </div>
           <div>
             <p className="mono" style={{fontSize:10,color:'var(--text-muted)',letterSpacing:'0.06em',textTransform:'uppercase'}}>Gig Passport</p>
-            <p className="display font-bold" style={{fontSize:18,color:'var(--text-primary)',letterSpacing:'-0.025em'}}>{name||'Ravi Kumar'}</p>
+            <p className="display font-bold" style={{fontSize:18,color:'var(--text-primary)',letterSpacing:'-0.025em'}}>{passport?.workerName || '—'}</p>
           </div>
         </div>
         <span className="pill pill-success"><div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"/>Verified</span>
       </div>
       <div className="grid grid-cols-3 gap-3 mb-4">
-        {[{l:'Eligible Days',v:days||'42'},{l:'Platforms',v:(platforms?.length||3)+' active'},{l:'Status',v:'Active'}].map((s,i)=>(
+        {[{l:'Eligible Days',v:passport?.workingDays ?? '—'},{l:'Platforms',v:`${passport?.platforms?.length || 0} active`},{l:'Status',v:'Active'}].map((s,i)=>(
           <div key={i} className="rounded-xl p-2.5 text-center" style={{background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)'}}>
             <p className="display font-bold" style={{fontSize:16,color:'var(--primary-light)'}}>{s.v}</p>
             <p className="mono" style={{fontSize:9,color:'var(--text-muted)',marginTop:2}}>{s.l}</p>
@@ -72,19 +77,19 @@ function PassportCard({name,passportId,platforms,days,status}) {
         ))}
       </div>
       <div className="flex items-center gap-2 mb-3">
-        {['Swiggy','Uber','Zomato'].map(p=>(
+        {(passport?.platforms || []).map(p=>(
           <span key={p} className="pill" style={{fontSize:10,borderColor:PLATFORM_COLORS[p]+'40',color:PLATFORM_COLORS[p]}}>{p}</span>
         ))}
       </div>
       <div className="flex items-center gap-2 p-3 rounded-xl mono" style={{background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)'}}>
         <Hash size={12} style={{color:'var(--text-muted)',flexShrink:0}}/>
         <span className="break-word flex-1" style={{fontSize:11,color:'var(--text-muted)'}}>
-          {passportId||'GS-IND-22091-3f7a2b9c4e1d'}
+          {passport?.passportId || '—'}
         </span>
         <button onClick={copy} className="btn-press" style={{color:copied?'var(--primary-light)':'var(--text-muted)'}}>
           {copied?<CheckCircle2 size={13}/>:<Copy size={13}/>}
         </button>
-        <a href="#" className="btn-press" style={{color:'var(--text-muted)'}}><ExternalLink size={13}/></a>
+        <a href={`https://mumbai.polygonscan.com/tx/${passport?.txHash || ''}`} target="_blank" rel="noreferrer" className="btn-press" style={{color:'var(--text-muted)'}}><ExternalLink size={13}/></a>
       </div>
     </div>
   )
@@ -178,11 +183,24 @@ export default function GigPassport() {
   }
   const generate = async () => {
     setCreating(true)
-    await new Promise(r=>setTimeout(r,2000))
-    setPassport({name:form.name||'Ravi Kumar',passportId:`GS-IND-${Date.now().toString(36).toUpperCase()}`,platforms:form.platforms,days:form.days||42})
-    setCreating(false)
-    setStep(0)
-    toast.success('Passport generated on-chain!')
+    try {
+      const res = await api.post('/passport/generate', {
+        workerName: form.name,
+        phone: form.phone,
+        platforms: form.platforms,
+        totalEarnings: Number(form.earnings),
+        workingDays: Number(form.days),
+        avgMonthlyEarning: Number(form.avgMonthly)
+      })
+      setPassport(res.data.passport)
+      setStep(0)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+      toast.success('Passport generated on-chain!')
+    } catch (error) {
+      toast.error(error?.response?.data?.error || 'Failed to generate passport')
+    } finally {
+      setCreating(false)
+    }
   }
 
   return (
@@ -198,7 +216,7 @@ export default function GigPassport() {
 
       {step===0 && (
         <>
-          <PassportCard/>
+          <PassportCard passport={passport}/>
           <div className="mb-4">
             <div className="flex items-center justify-between mb-3">
               <p className="mono font-semibold" style={{fontSize:12,color:'var(--text-secondary)'}}>Work Records</p>
@@ -309,7 +327,7 @@ export default function GigPassport() {
                 </div>
                 <button onClick={generate} disabled={creating} className="w-full btn-press rounded-xl py-3 display font-semibold flex items-center justify-center gap-2"
                   style={{background:'var(--primary)',color:'white',fontSize:14,opacity:creating?0.7:1}}>
-                  {creating?(<><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>Generating…</>):'Generate Gig Passport'}
+                  {creating?(<><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>Generating on-chain...</>):'Generate Gig Passport'}
                 </button>
               </motion.div>
             )}
