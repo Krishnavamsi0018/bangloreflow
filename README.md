@@ -1,16 +1,19 @@
 # GigSecure Chain 🔐
+
 > Portable blockchain identity & social security for India's 23.5M gig workers
 
 ## Tech Stack
-| Layer | Tech |
-|-------|------|
-| Frontend | React 18 + Vite + Tailwind + Framer Motion |
-| Backend | Node.js + Express |
-| Blockchain | Hardhat + Solidity + Ethers.js v6 |
-| AI | Groq (llama3-70b) via LangChain |
-| Network | Polygon Mumbai Testnet |
+
+| Layer      | Tech                                       |
+| ---------- | ------------------------------------------ |
+| Frontend   | React 18 + Vite + Tailwind + Framer Motion |
+| Backend    | Node.js + Express                          |
+| Blockchain | Hardhat + Solidity + Ethers.js v6          |
+| AI         | Groq (llama3-70b) via LangChain            |
+| Network    | Polygon Mumbai Testnet                     |
 
 ## Project Structure
+
 ```
 gigsecure-chain/
 ├── frontend/          # React + Vite app
@@ -28,6 +31,7 @@ gigsecure-chain/
 ```
 
 ## Quick Start
+
 ```bash
 # Install all deps
 npm install
@@ -53,11 +57,13 @@ cd frontend && npm run dev
 ```
 
 ## Features
+
 - 🛂 **Gig Passport** — On-chain portable worker identity (SHA-256 + Blockchain)
 - ⚡ **Slump Shield** — AI-powered income risk prediction with peer pools
 - 🔒 **ZK Benefits** — Zero-knowledge eligibility verification
 - 🏆 **NFT Badges** — Soulbound ERC-721 benefit achievement tokens
 
 ## India Policy Angle
+
 Built on India's **Code on Social Security 2020** rules (activating 2026).
 Targets 23.5M gig workers projected by 2030.

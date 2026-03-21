@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: gigsecure-backend
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: GROQ_API_KEY
+        sync: false
+      - key: FRONTEND_URL
+        value: https://gig-1-frontend.vercel.app
