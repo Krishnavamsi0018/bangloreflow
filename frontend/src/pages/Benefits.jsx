@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { Shield, CheckCircle2, Lock, ChevronRight, IndianRupee, Calendar, Users, Heart, Baby, AlertTriangle, ExternalLink, Info, Sparkles } from 'lucide-react'
+import api from '../utils/api'
 
 const BENEFITS = [
   {
@@ -238,9 +239,76 @@ function BenefitDetailSheet({ benefit, onClose }) {
 
 export default function Benefits() {
   const [selected, setSelected] = useState(null)
+  const [result, setResult] = useState(null)
+  const [loading, setLoading] = useState(false)
 
-  const eligible = BENEFITS.filter(b => b.status === 'eligible').length
-  const inProgress = BENEFITS.filter(b => b.status === 'in-progress').length
+  useEffect(() => {
+    const fetchBenefits = async () => {
+      setLoading(true)
+      try {
+        const res = await api.post('/benefits/calculate', {
+          workingDays: 22,
+          monthsActive: 8,
+          avgMonthlyEarning: 18000,
+          platforms: 3,
+        })
+        setResult(res.data)
+      } catch (error) {
+        toast.error(error?.response?.data?.error || 'Failed to calculate benefits')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchBenefits()
+  }, [])
+
+  const findBenefitMatch = (benefitName) => {
+    const keywordMap = {
+      EPF: ['EPF', 'PROVIDENT'],
+      ESI: ['ESI', 'HEALTH'],
+      GRATUITY: ['GRATUITY'],
+      MATERNITY: ['MATERNITY'],
+    }
+    const normalized = benefitName.toUpperCase()
+    const keywords = normalized.includes('EPF')
+      ? keywordMap.EPF
+      : normalized.includes('ESI')
+        ? keywordMap.ESI
+        : normalized.includes('GRATUITY')
+          ? keywordMap.GRATUITY
+          : normalized.includes('MATERNITY')
+            ? keywordMap.MATERNITY
+            : []
+
+    if (!keywords.length || !Array.isArray(result?.benefits)) return null
+
+    return result.benefits.find((item) => {
+      const haystack = `${item?.name || ''} ${item?.benefit || ''} ${item?.type || ''}`.toUpperCase()
+      return keywords.some((k) => haystack.includes(k))
+    })
+  }
+
+  const displayBenefits = BENEFITS.map((benefit) => {
+    const match = findBenefitMatch(benefit.name)
+    const status = match ? (match.eligible ? 'eligible' : 'in-progress') : benefit.status
+    const apiMonthlyAmount = match?.monthlyAmount
+    const monthlyBenefit = apiMonthlyAmount != null
+      ? `₹${Number(apiMonthlyAmount).toLocaleString('en-IN')}/mo`
+      : benefit.monthlyBenefit
+
+    return {
+      ...benefit,
+      status,
+      apiMonthlyAmount,
+      monthlyBenefit,
+    }
+  })
+
+  const eligible = result?.benefits?.filter(b => b.eligible).length ?? 2
+  const inProgress = displayBenefits.filter(b => b.status === 'in-progress').length
+  const protectionScore = result?.totalScore ?? 50
+  const locked = displayBenefits.length - eligible - inProgress
 
   return (
     <div className="page-pad max-w-lg mx-auto">
@@ -259,31 +327,49 @@ export default function Benefits() {
         <div className="flex items-center gap-4">
           <div>
             <p className="display font-bold" style={{ fontSize: 32, color: 'var(--primary-light)', letterSpacing: '-0.04em' }}>
-              {eligible}<span style={{ fontSize: 16, color: 'var(--text-muted)' }}>/{BENEFITS.length}</span>
+              {eligible}<span style={{ fontSize: 16, color: 'var(--text-muted)' }}>/{displayBenefits.length}</span>
             </p>
             <p className="mono" style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>Benefits eligible</p>
+            <p className="display font-bold mt-2" style={{ fontSize: 20, color: 'var(--secondary)', letterSpacing: '-0.02em' }}>
+              {protectionScore}
+            </p>
+            <p className="mono" style={{ fontSize: 10, color: 'var(--text-muted)' }}>Protection score</p>
           </div>
           <div className="flex-1">
             <div className="h-2 rounded-full overflow-hidden mb-2" style={{ background: 'var(--bg-elevated)' }}>
               <motion.div className="h-full rounded-full" style={{ background: 'linear-gradient(90deg, var(--primary), var(--primary-light))' }}
                 initial={{ width: 0 }}
-                animate={{ width: `${(eligible / BENEFITS.length) * 100}%` }}
+                animate={{ width: `${protectionScore}%` }}
                 transition={{ duration: 1, ease: [0.22, 1, 0.36, 1], delay: 0.4 }}
               />
             </div>
-            <div className="flex gap-3">
-              <span className="flex items-center gap-1 mono" style={{ fontSize: 10, color: '#4ADE80' }}>
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />{eligible} eligible
-              </span>
-              <span className="flex items-center gap-1 mono" style={{ fontSize: 10, color: '#FBBF24' }}>
-                <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />{inProgress} in progress
-              </span>
-              <span className="flex items-center gap-1 mono" style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-                <div className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--text-muted)' }} />{BENEFITS.length - eligible - inProgress} locked
-              </span>
-            </div>
+            {loading ? (
+              <div className="space-y-2">
+                <div className="h-2 rounded animate-pulse" style={{ background: 'rgba(148,163,184,0.2)' }} />
+                <div className="h-2 rounded animate-pulse" style={{ background: 'rgba(148,163,184,0.2)' }} />
+                <div className="h-2 rounded animate-pulse" style={{ background: 'rgba(148,163,184,0.2)' }} />
+              </div>
+            ) : (
+              <div className="flex gap-3">
+                <span className="flex items-center gap-1 mono" style={{ fontSize: 10, color: '#4ADE80' }}>
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />{eligible} eligible
+                </span>
+                <span className="flex items-center gap-1 mono" style={{ fontSize: 10, color: '#FBBF24' }}>
+                  <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />{inProgress} in progress
+                </span>
+                <span className="flex items-center gap-1 mono" style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                  <div className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--text-muted)' }} />{locked} locked
+                </span>
+              </div>
+            )}
           </div>
         </div>
+
+        {result && (
+          <div className="mt-3 flex items-center gap-1.5 mono" style={{ fontSize: 10, color: '#4ADE80' }}>
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />Calculated from Code on Social Security 2020
+          </div>
+        )}
 
         {/* Privacy line */}
         <div className="mt-4 rounded-xl p-3" style={{ background: 'var(--primary-dim)', border: '1px solid var(--border-brand)' }}>
@@ -295,7 +381,7 @@ export default function Benefits() {
 
       {/* Benefits list */}
       <div className="space-y-2">
-        {BENEFITS.map((benefit, i) => {
+        {displayBenefits.map((benefit, i) => {
           const sc = STATUS_CONFIG[benefit.status]
           const isEligible = benefit.status === 'eligible'
           const isInProgress = benefit.status === 'in-progress'
@@ -329,6 +415,11 @@ export default function Benefits() {
                     <p className="display font-semibold" style={{ fontSize: 14, color: isEligible ? 'var(--text-primary)' : 'var(--text-secondary)', letterSpacing: '-0.01em' }}>
                       {benefit.name}
                     </p>
+                    {benefit.apiMonthlyAmount != null && (
+                      <span className="mono" style={{ fontSize: 10, color: benefit.color }}>
+                        ₹{Number(benefit.apiMonthlyAmount).toLocaleString('en-IN')}/mo
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     <span className={`pill ${sc.chipClass}`} style={{ fontSize: 9 }}>
