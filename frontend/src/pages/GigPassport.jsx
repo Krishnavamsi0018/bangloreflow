@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { Shield, CheckCircle2, Copy, ExternalLink, ChevronRight, Plus, Trash2, Lock, Layers, Hash, Calendar } from 'lucide-react'
 import api from '../utils/api'
+import { useWallet } from '../context/WalletContext'
 
 const PLATFORMS = ['Swiggy','Uber','Zomato','Ola','Blinkit','Dunzo','Zepto','Porter']
 const STEP_LABELS = ['Worker Info','Platforms','Earnings','Generate']
@@ -89,7 +90,7 @@ function PassportCard({ passport }) {
         <button onClick={copy} className="btn-press" style={{color:copied?'var(--primary-light)':'var(--text-muted)'}}>
           {copied?<CheckCircle2 size={13}/>:<Copy size={13}/>}
         </button>
-        <a href={`https://mumbai.polygonscan.com/tx/${passport?.txHash || ''}`} target="_blank" rel="noreferrer" className="btn-press" style={{color:'var(--text-muted)'}}><ExternalLink size={13}/></a>
+        <a href={`https://amoy.polygonscan.com/tx/${passport?.txHash || ''}`} target="_blank" rel="noreferrer" className="btn-press" style={{color:'var(--text-muted)'}}><ExternalLink size={13}/></a>
       </div>
     </div>
   )
@@ -103,7 +104,7 @@ function ZKProofPanel() {
     'Building constraint circuit…',
     'Generating ZK witness…',
     'Verifying proof locally…',
-    'Anchoring on Polygon Mumbai…',
+    'Anchoring on Polygon Amoy…',
     'Proof ready ✓',
   ]
   const generate = async () => {
@@ -154,7 +155,7 @@ function ZKProofPanel() {
           )}
           {genState==='done' && (
             <motion.div initial={{opacity:0,y:4}} animate={{opacity:1,y:0}} className="mt-2 p-3 rounded-xl" style={{background:'var(--success-bg)',border:'1px solid rgba(74,222,128,0.2)'}}>
-              <p className="mono font-semibold" style={{fontSize:11,color:'#4ADE80'}}>✓ Proof anchored on Polygon Mumbai</p>
+              <p className="mono font-semibold" style={{fontSize:11,color:'#4ADE80'}}>✓ Proof anchored on Polygon Amoy</p>
               <p className="mono break-word mt-1" style={{fontSize:10,color:'var(--text-muted)'}}>0x3f7a2b9c…4e1d8f22 · Valid 24h</p>
               <div className="flex gap-2 mt-2">
                 <button onClick={()=>toast.success('Proof copied!')} className="pill pill-success btn-press"><Copy size={9}/>Copy Proof</button>
@@ -169,10 +170,23 @@ function ZKProofPanel() {
 }
 
 export default function GigPassport() {
+  const { isDemoMode, demoProfile } = useWallet()
   const [step,setStep] = useState(0) // 0=view existing, 1-4=create flow
   const [form,setForm] = useState({name:'',phone:'',platforms:[],earnings:'',days:'',avgMonthly:''})
   const [passport,setPassport] = useState(null)
   const [creating,setCreating] = useState(false)
+
+  useEffect(() => {
+    if (isDemoMode) {
+      setPassport({
+        workerName: demoProfile.workerName,
+        workingDays: demoProfile.workingDays,
+        platforms: demoProfile.platforms,
+        passportId: demoProfile.passportId,
+        txHash: demoProfile.txHash,
+      })
+    }
+  }, [isDemoMode, demoProfile])
 
   const togglePlatform = p => setForm(f=>({...f,platforms:f.platforms.includes(p)?f.platforms.filter(x=>x!==p):[...f.platforms,p]}))
   const next = () => {

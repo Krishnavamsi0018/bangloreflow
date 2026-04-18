@@ -5,7 +5,8 @@
     "compile": "hardhat compile",
     "test": "hardhat test",
     "deploy:local": "hardhat run scripts/deploy.js --network localhost",
-    "deploy:mumbai": "hardhat run scripts/deploy.js --network mumbai",
+    "deploy:amoy": "hardhat run scripts/deploy.js --network amoy",
+    "deploy:nft": "hardhat run scripts/deploy-nft.js --network amoy",
     "node": "hardhat node"
   },
   "devDependencies": {
@@ -13,6 +14,7 @@
     "hardhat": "^2.20.0"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^5.0.1"
+    "@openzeppelin/contracts": "^5.0.1",
+    "dotenv": "^16.6.1"
   }
 }

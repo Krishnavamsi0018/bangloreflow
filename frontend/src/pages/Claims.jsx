@@ -5,7 +5,7 @@ import { FileText, CheckCircle2, Clock, IndianRupee, ExternalLink, Plus, Copy, C
 
 const STEPS = [
   { label:'Submitted',       sub:'Claim received', done:true  },
-  { label:'Verified On-Chain', sub:'Polygon Mumbai', done:true  },
+  { label:'Verified On-Chain', sub:'Polygon Amoy', done:true  },
   { label:'Approved',          sub:'In review',      done:false, active:true },
   { label:'Paid',              sub:'~3 min ETA',      done:false },
 ]

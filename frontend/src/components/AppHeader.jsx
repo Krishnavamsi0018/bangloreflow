@@ -1,5 +1,5 @@
 import { useLocation, useNavigate, Link } from 'react-router-dom'
-import { Bell, ChevronLeft, Wallet } from 'lucide-react'
+import { Bell, ChevronLeft } from 'lucide-react'
 import { useWallet } from '../context/WalletContext'
 import { motion } from 'framer-motion'
 
@@ -20,7 +20,7 @@ const ROOT_TABS = ['/dashboard']
 export default function AppHeader() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
-  const { account } = useWallet()
+  const { account, isDemoMode } = useWallet()
 
   const normalizedPath = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname
 
@@ -95,6 +95,12 @@ export default function AppHeader() {
         {/* Right — wallet + notification */}
         <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
           <div className="flex items-center gap-2">
+            {isDemoMode && (
+              <div className="hidden sm:flex items-center gap-1.5 pill pill-warning">
+                <div className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                <span>Demo Mode</span>
+              </div>
+            )}
             {account && (
               <div className="hidden sm:flex items-center gap-1.5 pill pill-brand">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />

@@ -7,7 +7,7 @@ const BADGES = [
   {
     id: 1,
     name: 'Gig Pioneer',
-    desc: 'First worker to mint a Gig Passport on Polygon Mumbai',
+    desc: 'First worker to mint a Gig Passport on Polygon Amoy',
     icon: Shield,
     color: '#14B8A6',
     bgColor: 'rgba(13,148,136,0.12)',
@@ -259,7 +259,7 @@ function BadgeDetailSheet({ badge, onClose }) {
               {[
                 { l: 'Token ID', v: badge.tokenId },
                 { l: 'Earned On', v: badge.earnedDate },
-                { l: 'Network', v: 'Polygon Mumbai' },
+                { l: 'Network', v: 'Polygon Amoy' },
                 { l: 'Standard', v: 'ERC-1155' },
               ].map((r, i) => (
                 <div key={i} className="flex items-center justify-between py-2" style={{ borderBottom: i < 3 ? '1px solid var(--border-subtle)' : '' }}>
@@ -280,7 +280,7 @@ function BadgeDetailSheet({ badge, onClose }) {
 
             <div className="rounded-xl p-3" style={{ background: 'var(--primary-dim)', border: '1px solid var(--border-brand)' }}>
               <p className="mono" style={{ fontSize: 11, color: 'var(--primary-light)', lineHeight: 1.5 }}>
-                🔒 This badge is permanently recorded on Polygon Mumbai. It cannot be altered or removed.
+                🔒 This badge is permanently recorded on Polygon Amoy. It cannot be altered or removed.
               </p>
             </div>
           </div>

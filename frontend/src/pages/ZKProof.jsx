@@ -18,7 +18,7 @@ const PROOF_STEPS = [
   { label: 'Generating ZK witness',         detail: 'Computing satisfying assignment' },
   { label: 'Creating Groth16 proof',        detail: 'Proving time ~1.2s' },
   { label: 'Verifying proof locally',       detail: 'Checking proof validity' },
-  { label: 'Anchoring on Polygon Mumbai',   detail: 'Writing to chain…' },
+  { label: 'Anchoring on Polygon Amoy',   detail: 'Writing to chain…' },
   { label: 'Proof ready',                   detail: '✓ Verification complete' },
 ]
 
@@ -114,7 +114,7 @@ export default function ZKProof() {
     }
     setProofData(mockProof)
     setGenState('done')
-    toast.success('Proof anchored on Polygon Mumbai')
+    toast.success('Proof anchored on Polygon Amoy')
   }
 
   const reset = () => {
@@ -207,7 +207,7 @@ export default function ZKProof() {
 
         {/* Circuit diagram */}
         <div className="mb-4">
-          <p className="mono mb-2" style={{ fontSize: 11, color: 'var(--text-muted)' }}>Groth16 circuit · Polygon Mumbai</p>
+          <p className="mono mb-2" style={{ fontSize: 11, color: 'var(--text-muted)' }}>Groth16 circuit · Polygon Amoy</p>
           <div className="rounded-xl p-3" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
             <CircuitAnimation step={completedSteps.length} />
           </div>
@@ -268,7 +268,7 @@ export default function ZKProof() {
         {genState === 'done' && proofData && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
             <div className="rounded-xl p-4 mb-3" style={{ background: 'var(--success-bg)', border: '1px solid rgba(74,222,128,0.25)' }}>
-              <p className="mono font-semibold mb-1" style={{ fontSize: 12, color: '#4ADE80' }}>✓ Proof anchored on Polygon Mumbai</p>
+              <p className="mono font-semibold mb-1" style={{ fontSize: 12, color: '#4ADE80' }}>✓ Proof anchored on Polygon Amoy</p>
               <p className="mono" style={{ fontSize: 10, color: 'rgba(74,222,128,0.7)' }}>Block #{proofData.blockNumber} · Valid for {proofData.validUntil}</p>
             </div>
             <div className="flex items-center gap-2 p-3 rounded-xl mb-3" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>

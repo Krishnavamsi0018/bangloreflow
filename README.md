@@ -2,6 +2,10 @@
 
 > Portable blockchain identity & social security for India's 23.5M gig workers
 
+## Live Demo
+
+**Vercel:** https://gig-1-frontend.vercel.app
+
 ## Tech Stack
 
 | Layer      | Tech                                       |
@@ -10,7 +14,7 @@
 | Backend    | Node.js + Express                          |
 | Blockchain | Hardhat + Solidity + Ethers.js v6          |
 | AI         | Groq (llama3-70b) via LangChain            |
-| Network    | Polygon Mumbai Testnet                     |
+| Network    | Polygon Amoy Testnet                       |
 
 ## Project Structure
 

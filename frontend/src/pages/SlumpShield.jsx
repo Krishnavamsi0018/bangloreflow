@@ -277,7 +277,7 @@ export default function SlumpShield() {
           </div>
           <div className="flex items-center gap-2">
             <Users size={12} style={{color:'rgba(74,222,128,0.7)'}}/>
-            <span className="mono" style={{fontSize:10,color:'rgba(74,222,128,0.7)'}}>247 workers in your risk pool · Polygon Mumbai</span>
+            <span className="mono" style={{fontSize:10,color:'rgba(74,222,128,0.7)'}}>247 workers in your risk pool · Polygon Amoy</span>
           </div>
         </motion.div>
       )}

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { UserCircle, Globe, Bell, Lock, HelpCircle, Shield, ChevronRight, CheckCircle2, Star, Smartphone, LogOut } from 'lucide-react'
+import { useWallet } from '../context/WalletContext'
 
 const LANGS = [
   {code:'en',label:'English',native:'English'},
@@ -37,10 +38,23 @@ function ProgressRing({pct=72,size=100}) {
 }
 
 export default function Profile() {
+  const { isDemoMode, tryDemoMode, disconnect, demoProfile } = useWallet()
   const [lang,setLang] = useState('en')
   const [notifications,setNotifications] = useState(true)
   const [appLock,setAppLock] = useState(true)
-  const [demoMode,setDemoMode] = useState(true)
+
+  const displayName = isDemoMode ? demoProfile.workerName : 'Ravi Kumar'
+  const displayId = isDemoMode ? demoProfile.workerId : 'GS-IND-22091'
+
+  const handleDemoToggle = (nextValue) => {
+    if (nextValue) {
+      tryDemoMode()
+      return
+    }
+    if (isDemoMode) {
+      disconnect()
+    }
+  }
 
   const Toggle = ({value,onChange}) => (
     <button onClick={()=>onChange(!value)} className="btn-press relative" style={{width:40,height:22}}>
@@ -66,8 +80,8 @@ export default function Profile() {
             RK
           </div>
           <div className="flex-1 min-w-0">
-            <p className="display font-bold" style={{fontSize:20,color:'var(--text-primary)',letterSpacing:'-0.025em'}}>Ravi Kumar</p>
-            <p className="mono" style={{fontSize:11,color:'var(--text-muted)',marginTop:2}}>GS-IND-22091</p>
+            <p className="display font-bold" style={{fontSize:20,color:'var(--text-primary)',letterSpacing:'-0.025em'}}>{displayName}</p>
+            <p className="mono" style={{fontSize:11,color:'var(--text-muted)',marginTop:2}}>{displayId}</p>
             <div className="flex items-center gap-2 mt-2 flex-wrap">
               <span className="pill pill-success" style={{fontSize:10}}><CheckCircle2 size={9}/>Level 2 Verified</span>
               <span className="pill pill-brand" style={{fontSize:10}}>EPF + ESI Eligible</span>
@@ -137,7 +151,7 @@ export default function Profile() {
         {[
           {label:'Notifications',sub:'Risk alerts and claim updates',icon:Bell,value:notifications,onChange:setNotifications},
           {label:'App Lock',sub:'Biometric/PIN security',icon:Lock,value:appLock,onChange:setAppLock},
-          {label:'Demo Mode',sub:'Simulated data (hackathon)',icon:Smartphone,value:demoMode,onChange:(v)=>{setDemoMode(v);toast.success(v?'Demo mode ON – simulated data':'Demo mode OFF')}},
+          {label:'Demo Mode',sub:'Simulated data (hackathon)',icon:Smartphone,value:isDemoMode,onChange:(v)=>{handleDemoToggle(v);toast.success(v?'Demo mode ON – simulated data':'Demo mode OFF')}},
         ].map((item,i)=>(
           <div key={i} className="flex items-center gap-3 p-4" style={{borderBottom:i<2?'1px solid var(--border-subtle)':''}}>
             <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)'}}>
@@ -169,7 +183,7 @@ export default function Profile() {
       {/* About */}
       <motion.div initial={{opacity:0}} animate={{opacity:1}} transition={{delay:0.35}}
         className="text-center py-4">
-        <p className="mono" style={{fontSize:10,color:'var(--text-muted)'}}>GigSecure Chain · v2.0 · Polygon Mumbai</p>
+        <p className="mono" style={{fontSize:10,color:'var(--text-muted)'}}>GigSecure Chain · v2.0 · Polygon Amoy</p>
         <p className="mono mt-1" style={{fontSize:10,color:'var(--text-muted)'}}>Built for India's 23.5M gig workers</p>
       </motion.div>
     </div>

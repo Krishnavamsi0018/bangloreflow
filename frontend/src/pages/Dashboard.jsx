@@ -11,7 +11,7 @@ const EARNINGS = [
   {day:'Mar 22',e:405},{day:'Mar 25',e:201},{day:'Mar 27',e:1559},{day:'Mar 30',e:1352},
 ]
 const ACTIVITY = [
-  { text:'Gig Passport minted on Polygon Mumbai', time:'2h ago', ok:true },
+  { text:'Gig Passport minted on Polygon Amoy', time:'2h ago', ok:true },
   { text:'Slump Shield activated — ₹15,000 payout unlocked', time:'5h ago', ok:false },
   { text:'EPF eligibility reached — 6 month threshold', time:'1d ago', ok:true },
   { text:'Slump Survivor Badge #001 minted', time:'2d ago', ok:true },
@@ -102,11 +102,17 @@ function KPIStat({label,value,sub,icon:Icon,trend,delay}) {
 }
 
 export default function Dashboard() {
-  const {account,connectWallet,isConnecting} = useWallet()
+  const { account, connectWallet, disconnect, isConnecting, isDemoMode, demoProfile } = useWallet()
   const [time,setTime] = useState(new Date())
   useEffect(()=>{const t=setInterval(()=>setTime(new Date()),1000);return()=>clearInterval(t)},[])
   const hour=time.getHours()
   const greeting=hour<12?'Good morning':hour<17?'Good afternoon':'Good evening'
+  const workerName = isDemoMode ? demoProfile.workerName.split(' ')[0] : 'Ravi'
+  const walletLabel = isDemoMode
+    ? 'Demo Mode'
+    : account
+      ? `${account.slice(0,6)}…${account.slice(-4)}`
+      : (isConnecting ? 'Connecting…' : 'Connect Wallet')
 
   return (
     <div className="page-pad max-w-lg mx-auto">
@@ -118,15 +124,15 @@ export default function Dashboard() {
           </p>
           <h1 className="display font-bold" style={{fontSize:'clamp(22px,5vw,28px)',letterSpacing:'-0.03em'}}>
             <span style={{color:'var(--text-muted)'}}>{greeting}, </span>
-            <span style={{color:'var(--text-primary)'}}>Ravi 👋</span>
+            <span style={{color:'var(--text-primary)'}}>{workerName} 👋</span>
           </h1>
         </motion.div>
         <motion.button initial={{opacity:0,x:12}} animate={{opacity:1,x:0}} transition={{duration:0.4,delay:0.1}}
-          onClick={connectWallet} disabled={isConnecting}
+          onClick={isDemoMode ? disconnect : connectWallet} disabled={isConnecting}
           className="flex items-center gap-1.5 btn-press" style={{background:'var(--bg-elevated)',border:'1px solid var(--border-amber)',borderRadius:10,padding:'8px 12px'}}>
           <div className={`w-1.5 h-1.5 rounded-full ${account?'bg-emerald-400 animate-pulse':'bg-amber-400'}`}/>
           <span className="mono" style={{fontSize:11,color:account?'#4ADE80':'var(--secondary)'}}>
-            {account?`${account.slice(0,6)}…${account.slice(-4)}`:(isConnecting?'Connecting…':'Connect Wallet')}
+            {walletLabel}
           </span>
         </motion.button>
       </div>

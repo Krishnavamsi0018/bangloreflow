@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
 import { Shield, Zap, ArrowRight, CheckCircle2, ChevronDown, Lock, FileText, Globe, Sparkles, TrendingUp } from 'lucide-react'
+import { useWallet } from '../context/WalletContext'
 
 const FEATURES = [
   { icon: Shield,   title: 'Gig Passport',   desc: 'On-chain work identity spanning all your platforms', color: 'var(--primary-light)' },
@@ -70,6 +71,17 @@ function LiveTicker() {
 export default function Landing() {
   const { scrollYProgress } = useScroll()
   const heroY = useTransform(scrollYProgress, [0, 0.3], [0, -40])
+  const { tryDemoMode, disconnect, isDemoMode } = useWallet()
+  const navigate = useNavigate()
+
+  const handleDemoToggle = () => {
+    if (isDemoMode) {
+      disconnect()
+      return
+    }
+    tryDemoMode()
+    navigate('/dashboard')
+  }
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
@@ -98,6 +110,12 @@ export default function Landing() {
             <span className="pill pill-brand hidden sm:flex" style={{ fontSize: 10 }}>
               <Sparkles size={8} />Hackathon Demo
             </span>
+            <button
+              onClick={handleDemoToggle}
+              className="btn-press hidden sm:flex items-center gap-1.5 rounded-xl px-3 py-2 display font-semibold"
+              style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)', fontSize: 12, border: '1px solid var(--border-default)' }}>
+              {isDemoMode ? 'Exit Demo' : 'Try Demo'}
+            </button>
             <Link to="/dashboard"
               className="btn-press flex items-center gap-1.5 rounded-xl px-3 py-2 display font-bold"
               style={{ background: 'var(--primary)', color: 'white', fontSize: 12, boxShadow: '0 4px 16px rgba(13,148,136,0.3)', whiteSpace: 'nowrap' }}>
@@ -117,7 +135,7 @@ export default function Landing() {
             className="flex justify-center mb-5">
             <span className="pill pill-brand" style={{ fontSize: 11 }}>
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Live on Polygon Mumbai · Hackathon Demo
+              Live on Polygon Amoy · Hackathon Demo
             </span>
           </motion.div>
 
@@ -141,6 +159,12 @@ export default function Landing() {
               style={{ background: 'var(--primary)', color: 'white', fontSize: 15, boxShadow: '0 8px 32px rgba(13,148,136,0.35)' }}>
               Open App <ArrowRight size={16} />
             </Link>
+            <button
+              onClick={handleDemoToggle}
+              className="btn-press flex items-center gap-2 px-6 py-3.5 rounded-2xl display font-semibold w-full sm:w-auto justify-center"
+              style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)', fontSize: 15, border: '1px solid var(--border-default)' }}>
+              {isDemoMode ? 'Exit Demo' : 'Try Demo'} <Sparkles size={16} />
+            </button>
             <a href="#features"
               className="btn-press flex items-center gap-2 px-6 py-3.5 rounded-2xl display font-semibold w-full sm:w-auto justify-center"
               style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)', fontSize: 15, border: '1px solid var(--border-default)' }}>
@@ -233,7 +257,7 @@ export default function Landing() {
               Get Started — It's Free <ArrowRight size={16} />
             </Link>
             <p className="mono mt-4" style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-              Secured by Polygon Mumbai · Zero-knowledge proofs · Privacy-first
+              Secured by Polygon Amoy · Zero-knowledge proofs · Privacy-first
             </p>
           </div>
         </motion.div>
@@ -247,7 +271,7 @@ export default function Landing() {
             <span className="mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>GigSecure Chain · 2026</span>
           </div>
           <p className="mono" style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-            Built for India's Code on Social Security 2020 · Polygon Mumbai Testnet
+            Built for India's Code on Social Security 2020 · Polygon Amoy Testnet
           </p>
         </div>
       </footer>
