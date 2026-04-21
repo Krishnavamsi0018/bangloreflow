@@ -2,14 +2,10 @@
   "name": "gigsecure-chain",
   "version": "1.0.0",
   "private": true,
-  "workspaces": ["frontend", "backend", "contracts"],
+  "workspaces": ["frontend"],
   "scripts": {
-    "dev:frontend": "cd frontend && npm run dev",
-    "dev:backend": "cd backend && npm run dev",
-    "dev:chain": "cd contracts && npx hardhat node",
-    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\""
-  },
-  "devDependencies": {
-    "concurrently": "^8.2.0"
+    "dev": "cd frontend && npm run dev",
+    "build": "cd frontend && npm run build",
+    "preview": "cd frontend && npm run preview"
   }
 }

@@ -1,20 +1,17 @@
 import { Link, useLocation } from 'react-router-dom'
-import { useWallet } from '../context/WalletContext'
-import { Shield, Wallet, Menu, X } from 'lucide-react'
+import { Shield, Sparkles, Menu, X } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 const navLinks = [
   { path: '/dashboard', label: 'Dashboard' },
+  { path: '/city-dashboard', label: 'City Dashboard' },
   { path: '/passport', label: 'Gig Passport' },
   { path: '/slump-shield', label: 'Slump Shield' },
-  { path: '/benefits', label: 'Benefits' },
-  { path: '/nft-badges', label: 'NFT Badges' },
-  { path: '/zk-proof', label: 'ZK Proof' },
+  { path: '/profile', label: 'Profile' },
 ]
 
 export default function Navbar() {
-  const { account, isConnecting, connectWallet, disconnectWallet } = useWallet()
   const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
@@ -65,16 +62,10 @@ export default function Navbar() {
 
         {/* Wallet + hamburger */}
         <div className="flex items-center gap-2">
-          <button
-            onClick={account ? disconnectWallet : connectWallet}
-            disabled={isConnecting}
-            className="flex items-center gap-2 px-3.5 py-1.5 text-sm rounded-lg border border-white/10 text-zinc-400 hover:text-white hover:bg-zinc-800 hover:border-white/15 transition-all"
-          >
-            <Wallet className="w-3.5 h-3.5" />
-            <span className="mono text-xs">
-              {isConnecting ? 'Connecting...' : account ? `${account.slice(0,6)}...${account.slice(-4)}` : 'Connect'}
-            </span>
-          </button>
+          <span className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs rounded-lg border border-white/10 text-zinc-300 bg-zinc-900/60">
+            <Sparkles className="w-3.5 h-3.5" />
+            Demo Mode
+          </span>
           <button className="md:hidden p-2 text-zinc-500 hover:text-white rounded-lg hover:bg-zinc-800 transition-all" onClick={() => setMenuOpen(!menuOpen)}>
             {menuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
           </button>

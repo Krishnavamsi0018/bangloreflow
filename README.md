@@ -1,73 +1,120 @@
-# GigSecure Chain 🔐
+# BengaluruFlow
 
-> Portable blockchain identity & social security for India's 23.5M gig workers
+Frontend-first hackathon prototype focused on Bengaluru city operations + gig-worker resilience.
 
-## Live Demo
+This build is optimized for demo speed, mobile usability, and judging clarity.
 
-**Vercel:** https://gig-1-frontend.vercel.app
+## Problem
+
+Bengaluru faces uneven demand distribution, route congestion, and income volatility for gig workers.
+
+## Solution
+
+BengaluruFlow provides a mobile-first experience with three core modules:
+
+- SlumpShield: live risk gauge + optimizer simulation for high-demand zones.
+- City Dashboard: worker density trends and demand hotspot visibility.
+- Gig Passport: portable identity with work history and achievement signals.
+
+## Judging-Focused Design
+
+This repo includes a judge-first presentation flow aligned to typical hackathon criteria:
+
+- Innovation: dynamic risk + zone optimization storytelling.
+- Technical Execution: responsive React app, motion-rich UI, and charted analytics.
+- Impact & Practicality: grounded in gig-worker daily workflows.
+- Presentation & UX: guided demo path and mobile-first interactions.
+
+## Current Architecture
+
+This branch is frontend-only.
+
+- Root workspace: [package.json](package.json)
+- App source: [frontend](frontend)
+- Backend/contracts folders were intentionally removed in this sprint branch.
 
 ## Tech Stack
 
-| Layer      | Tech                                       |
-| ---------- | ------------------------------------------ |
-| Frontend   | React 18 + Vite + Tailwind + Framer Motion |
-| Backend    | Node.js + Express                          |
-| Blockchain | Hardhat + Solidity + Ethers.js v6          |
-| AI         | Groq (llama3-70b) via LangChain            |
-| Network    | Polygon Amoy Testnet                       |
+- React 18
+- Vite
+- Tailwind CSS
+- Framer Motion
+- Recharts
+- Lucide React
+- React Router
+- React Hot Toast
 
 ## Project Structure
 
+```text
+gig_1_copilot_sandbox/
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── App.jsx
+│   │   └── index.css
+│   └── package.json
+├── package.json
+└── README.md
 ```
-gigsecure-chain/
-├── frontend/          # React + Vite app
-│   └── src/
-│       ├── pages/     # Dashboard, GigPassport, SlumpShield, Benefits, NFTBadges
-│       ├── components/ # Navbar, reusable UI
-│       ├── context/   # WalletContext (Ethers.js)
-│       └── hooks/     # useContract, usePassport, useSlump
-├── backend/           # Express API
-│   ├── routes/        # /passport /slump /benefits /zk
-│   └── controllers/   # Business logic + Groq AI
-└── contracts/         # Solidity smart contracts
-    ├── GigPassport.sol # On-chain worker identity
-    └── GigNFT.sol     # Soulbound benefit badges (ERC-721)
-```
+
+## Routes
+
+- `/` landing and judge-mode entry
+- `/dashboard` quick module launcher
+- `/slump-shield` risk and optimizer screen
+- `/city` city intelligence dashboard
+- `/city-dashboard` alias to city dashboard
+- `/passport` gig passport screen
+- `/profile` profile/settings
 
 ## Quick Start
 
+From repo root:
+
 ```bash
-# Install all deps
 npm install
-cd frontend && npm install
-cd ../backend && npm install
-cd ../contracts && npm install
-
-# Copy env files
-cp backend/.env.example backend/.env
-cp frontend/.env.example frontend/.env
-
-# Terminal 1: Start local blockchain
-cd contracts && npx hardhat node
-
-# Terminal 2: Deploy contracts
-cd contracts && npm run deploy:local
-
-# Terminal 3: Start backend
-cd backend && npm run dev
-
-# Terminal 4: Start frontend
-cd frontend && npm run dev
+npm run dev
 ```
 
-## Features
+Or from frontend directly:
 
-- 🛂 **Gig Passport** — On-chain portable worker identity (SHA-256 + Blockchain)
-- ⚡ **Slump Shield** — AI-powered income risk prediction with peer pools
-- 🔒 **ZK Benefits** — Zero-knowledge eligibility verification
-- 🏆 **NFT Badges** — Soulbound ERC-721 benefit achievement tokens
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-## India Policy Angle
+## Build
 
-Built on India's **Code on Social Security 2020** rules (activating 2026).
-Targets 23.5M gig workers projected by 2030.
+From repo root:
+
+```bash
+npm run build
+npm run preview
+```
+
+From frontend directly:
+
+```bash
+cd frontend
+npm run build
+npm run preview
+```
+
+## Demo Script (Recommended)
+
+1. Open landing and start Judge Mode.
+2. Show SlumpShield slider and route optimization output.
+3. Switch to City Dashboard for demand/density insights.
+4. End on Gig Passport to show portability and trust artifacts.
+
+## Notes
+
+- This branch prioritizes presentation and usability for hackathon finals.
+- Some dependencies remain from earlier iterations; not all are actively used in this sprint.
+
+## License
+
+For hackathon/demo use within this project context.

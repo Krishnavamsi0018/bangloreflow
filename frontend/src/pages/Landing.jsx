@@ -1,280 +1,337 @@
-import { useState, useEffect, useRef } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
-import { Shield, Zap, ArrowRight, CheckCircle2, ChevronDown, Lock, FileText, Globe, Sparkles, TrendingUp } from 'lucide-react'
-import { useWallet } from '../context/WalletContext'
+import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
+import {
+  ArrowRight,
+  Sparkles,
+  Shield,
+  Zap,
+  Building2,
+  Trophy,
+  Code2,
+  HeartHandshake,
+  MonitorSmartphone,
+  X,
+  Timer,
+} from 'lucide-react'
 
-const FEATURES = [
-  { icon: Shield,   title: 'Gig Passport',   desc: 'On-chain work identity spanning all your platforms', color: 'var(--primary-light)' },
-  { icon: Zap,      title: 'Slump Shield',   desc: 'AI detects income drops 7 days early and activates your cover', color: 'var(--secondary)' },
-  { icon: Lock,     title: 'ZK Eligibility', desc: 'Prove you qualify without revealing your income', color: '#818CF8' },
-  { icon: FileText, title: 'Instant Claims', desc: 'Submit → verified on-chain → paid, in under 3 minutes', color: '#4ADE80' },
+const PILLARS = [
+  {
+    title: 'Innovation · 25%',
+    desc: 'Live Groq copilots + Kannada voice guidance convert static dashboards into real-time Bengaluru operations.',
+    icon: Trophy,
+    color: '#F59E0B',
+  },
+  {
+    title: 'Technical Execution · 25%',
+    desc: 'Streaming AI, multimodal verification, and motion-rich analytics keep the demo reliable under judge pressure.',
+    icon: Code2,
+    color: '#14B8A6',
+  },
+  {
+    title: 'Impact & Practicality · 25%',
+    desc: 'Designed for Bengaluru congestion, gig-worker route friction, and city-level workforce balancing.',
+    icon: HeartHandshake,
+    color: '#22C55E',
+  },
+  {
+    title: 'Presentation & UX · 25%',
+    desc: 'City-first demo path, mobile-first UI, and clear action summaries for fast judging confidence.',
+    icon: MonitorSmartphone,
+    color: '#60A5FA',
+  },
 ]
 
-const PLATFORMS = ['Swiggy', 'Uber', 'Zomato', 'Blinkit', 'Porter', 'Dunzo', 'Zepto', 'Ola']
-const STATS = [
-  { value: '23.5M', label: 'Workers by 2030' },
-  { value: '₹18K',  label: 'Avg monthly income' },
-  { value: '0%',    label: 'Social protection today' },
-  { value: '2026',  label: 'India Code SS Act' },
+const MODULES = [
+  {
+    title: 'SlumpShield',
+    desc: 'Interactive SVG risk arc + one-tap optimizer route simulation.',
+    route: '/slump-shield',
+    icon: Zap,
+    color: '#F59E0B',
+  },
+  {
+    title: 'City Intelligence',
+    desc: 'Live worker-density drift with hourly pressure bars.',
+    route: '/city',
+    icon: Building2,
+    color: '#14B8A6',
+  },
+  {
+    title: 'Gig Passport',
+    desc: 'Portable identity with expandable work-history proof and badge trust signals.',
+    route: '/passport',
+    icon: Shield,
+    color: '#60A5FA',
+  },
 ]
 
-function AnimatedCounter({ target, duration = 2000 }) {
-  const [count, setCount] = useState(0)
-  const ref = useRef(null)
-  useEffect(() => {
-    const observer = new IntersectionObserver(([e]) => {
-      if (!e.isIntersecting) return
-      const num = parseInt(target.replace(/\D/g, ''))
-      if (isNaN(num) || num === 0) { setCount(0); return }
-      let start = Date.now()
-      const animate = () => {
-        const p = Math.min((Date.now() - start) / duration, 1)
-        setCount(Math.floor(p * num))
-        if (p < 1) requestAnimationFrame(animate)
-      }
-      requestAnimationFrame(animate)
-    }, { threshold: 0.5 })
-    if (ref.current) observer.observe(ref.current)
-    return () => observer.disconnect()
-  }, [target])
-  return <span ref={ref}>{count || target.replace(/\d/g, c => c)}</span>
-}
-
-function LiveTicker() {
-  const EVENTS = [
-    '⚡ Ravi Kumar · Swiggy · ₹1,200 claim approved',
-    '🛡 Priya Singh · Uber · Shield activated',
-    '✓ Arjun Dev · Passport minted · Polygon',
-    '💰 Neha Sharma · ESI eligible · 42 days',
-    '⚡ Suresh K · Zomato · ₹800 claim paid',
-    '🌟 Meena Rao · Level 2 verified',
-  ]
-  const [idx, setIdx] = useState(0)
-  useEffect(() => { const t = setInterval(() => setIdx(i => (i + 1) % EVENTS.length), 2500); return () => clearInterval(t) }, [])
-  return (
-    <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-full overflow-hidden"
-      style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', maxWidth: '100%' }}>
-      <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
-      <AnimatePresence mode="wait">
-        <motion.p key={idx}
-          initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
-          transition={{ duration: 0.3 }}
-          className="mono truncate" style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
-          {EVENTS[idx]}
-        </motion.p>
-      </AnimatePresence>
-    </div>
-  )
-}
+const DEMO_STEPS = [
+  {
+    step: '01',
+    title: 'Open City Intelligence',
+    detail: 'Ask the AI operator console about 8pm demand and show zone-level recommendations.',
+    route: '/city',
+  },
+  {
+    step: '02',
+    title: 'Switch to SlumpShield',
+    detail: 'Move risk slider and trigger AI risk explainer + optimizer guidance with Kannada voice.',
+    route: '/slump-shield',
+  },
+  {
+    step: '03',
+    title: 'Finish at Gig Passport',
+    detail: 'Expand work history and explain trust portability for workers.',
+    route: '/passport',
+  },
+]
 
 export default function Landing() {
-  const { scrollYProgress } = useScroll()
-  const heroY = useTransform(scrollYProgress, [0, 0.3], [0, -40])
-  const { tryDemoMode, disconnect, isDemoMode } = useWallet()
-  const navigate = useNavigate()
+  const [judgeMode, setJudgeMode] = useState(false)
 
-  const handleDemoToggle = () => {
-    if (isDemoMode) {
-      disconnect()
-      return
-    }
-    tryDemoMode()
-    navigate('/dashboard')
-  }
+  const scoreSignal = useMemo(() => {
+    return PILLARS.reduce((sum, item) => sum + Number(item.title.split('%')[0].split('· ')[1]), 0)
+  }, [])
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
-
-      {/* ── Nav ── */}
-      <nav className="fixed top-0 left-0 right-0 z-40 glass" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-        <div className="max-w-5xl mx-auto px-4 h-12 flex items-center justify-between gap-3">
-
-          {/* Logo — compact on mobile */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <div className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0"
-              style={{ background: 'var(--primary-dim)', border: '1px solid var(--border-brand)' }}>
-              <Shield size={12} style={{ color: 'var(--primary-light)' }} />
-            </div>
-            {/* Full name on sm+, short name on xs */}
-            <span className="display font-bold hidden sm:block" style={{ fontSize: 13, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
-              GigSecure Chain
-            </span>
-            <span className="display font-bold sm:hidden" style={{ fontSize: 13, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
-              GigSecure
-            </span>
-          </div>
-
-          {/* Right side */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <span className="pill pill-brand hidden sm:flex" style={{ fontSize: 10 }}>
-              <Sparkles size={8} />Hackathon Demo
-            </span>
-            <button
-              onClick={handleDemoToggle}
-              className="btn-press hidden sm:flex items-center gap-1.5 rounded-xl px-3 py-2 display font-semibold"
-              style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)', fontSize: 12, border: '1px solid var(--border-default)' }}>
-              {isDemoMode ? 'Exit Demo' : 'Try Demo'}
-            </button>
-            <Link to="/dashboard"
-              className="btn-press flex items-center gap-1.5 rounded-xl px-3 py-2 display font-bold"
-              style={{ background: 'var(--primary)', color: 'white', fontSize: 12, boxShadow: '0 4px 16px rgba(13,148,136,0.3)', whiteSpace: 'nowrap' }}>
-              Launch App <ArrowRight size={12} />
-            </Link>
-          </div>
-        </div>
-      </nav>
-
-      {/* ── Hero ── */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center text-center px-5 pt-12">
+    <div className="min-h-screen overflow-x-hidden" style={{ background: 'var(--bg-base)' }}>
+      <section className="relative min-h-screen px-4 pt-10 pb-24 sm:px-6">
         <div className="hero-glow absolute inset-0 pointer-events-none" />
-        <div className="dot-grid absolute inset-0 pointer-events-none opacity-40" />
+        <div className="dot-grid absolute inset-0 pointer-events-none opacity-35" />
+        <div
+          className="absolute -top-24 -left-20 w-72 h-72 rounded-full pointer-events-none"
+          style={{ background: 'radial-gradient(circle, rgba(245,158,11,0.15), transparent 65%)' }}
+        />
+        <div
+          className="absolute -bottom-16 -right-20 w-80 h-80 rounded-full pointer-events-none"
+          style={{ background: 'radial-gradient(circle, rgba(20,184,166,0.18), transparent 70%)' }}
+        />
 
-        <motion.div style={{ y: heroY }} className="relative z-10 max-w-2xl mx-auto">
-          <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
-            className="flex justify-center mb-5">
-            <span className="pill pill-brand" style={{ fontSize: 11 }}>
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Live on Polygon Amoy · Hackathon Demo
+        <div className="relative z-10 max-w-5xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center"
+          >
+            <span className="pill pill-brand inline-flex mb-4" style={{ fontSize: 10 }}>
+              <Sparkles size={10} /> BrinHack 1.0 Final Demo Build
             </span>
+
+            <h1
+              className="display font-bold"
+              style={{
+                fontSize: 'clamp(34px, 10vw, 68px)',
+                letterSpacing: '-0.05em',
+                lineHeight: 1.02,
+                color: 'var(--text-primary)',
+              }}
+            >
+              BengaluruFlow is now a
+              <br />
+              <span className="shimmer-text">judge-first experience</span>
+            </h1>
+
+            <p
+              className="mono mx-auto mt-4"
+              style={{
+                maxWidth: 700,
+                fontSize: 12,
+                color: 'var(--text-secondary)',
+                lineHeight: 1.75,
+              }}
+            >
+              Bengaluru faces peak-hour demand spikes, route congestion, and fragile worker earnings. BengaluruFlow gives BBMP operators and workers a shared AI layer to route labor, reduce congestion, and improve daily income resilience.
+            </p>
+
+            <div className="flex flex-wrap justify-center gap-2 mt-4">
+              <span className="pill pill-success">Score Coverage {scoreSignal}%</span>
+              <span className="pill"><Timer size={10} /> 90-sec judge route</span>
+              <span className="pill">Mobile-first demo</span>
+            </div>
           </motion.div>
 
-          <motion.h1 initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }}
-            className="display font-bold mb-4 text-balance"
-            style={{ fontSize: 'clamp(36px,8vw,64px)', letterSpacing: '-0.04em', lineHeight: 1.05, color: 'var(--text-primary)' }}>
-            Your gig work,{' '}
-            <span className="shimmer-text">protected.</span>
-          </motion.h1>
-
-          <motion.p initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }}
-            className="mb-6 mx-auto text-balance"
-            style={{ fontSize: 'clamp(15px,3vw,18px)', color: 'var(--text-secondary)', maxWidth: 480, lineHeight: 1.65, fontFamily: 'DM Sans' }}>
-            India's first on-chain social security layer for gig workers. Verifiable identity, AI risk shield, instant benefits — all from your phone.
-          </motion.p>
-
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-            className="flex flex-col sm:flex-row items-center gap-3 justify-center mb-6">
-            <Link to="/dashboard"
-              className="btn-press flex items-center gap-2 px-6 py-3.5 rounded-2xl display font-bold w-full sm:w-auto justify-center"
-              style={{ background: 'var(--primary)', color: 'white', fontSize: 15, boxShadow: '0 8px 32px rgba(13,148,136,0.35)' }}>
-              Open App <ArrowRight size={16} />
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="flex flex-wrap justify-center gap-3 mt-7"
+          >
+            <Link
+              to="/dashboard"
+              className="btn-press px-6 py-3 rounded-2xl display font-bold"
+              style={{
+                background: 'var(--primary)',
+                color: 'white',
+                boxShadow: '0 8px 30px rgba(13,148,136,0.35)',
+                fontSize: 14,
+              }}
+            >
+              Enter Demo <ArrowRight size={15} className="inline ml-1" />
             </Link>
             <button
-              onClick={handleDemoToggle}
-              className="btn-press flex items-center gap-2 px-6 py-3.5 rounded-2xl display font-semibold w-full sm:w-auto justify-center"
-              style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)', fontSize: 15, border: '1px solid var(--border-default)' }}>
-              {isDemoMode ? 'Exit Demo' : 'Try Demo'} <Sparkles size={16} />
+              onClick={() => setJudgeMode(true)}
+              className="btn-press px-6 py-3 rounded-2xl display font-semibold"
+              style={{
+                background: 'var(--bg-elevated)',
+                color: 'var(--text-secondary)',
+                border: '1px solid var(--border-default)',
+                fontSize: 14,
+              }}
+            >
+              Start Judge Mode
             </button>
-            <a href="#features"
-              className="btn-press flex items-center gap-2 px-6 py-3.5 rounded-2xl display font-semibold w-full sm:w-auto justify-center"
-              style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)', fontSize: 15, border: '1px solid var(--border-default)' }}>
-              See how it works <ChevronDown size={16} />
-            </a>
           </motion.div>
 
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.45 }} className="flex justify-center">
-            <LiveTicker />
-          </motion.div>
-        </motion.div>
-      </section>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-8">
+            {PILLARS.map((item, index) => (
+              <motion.div
+                key={item.title}
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.14 + index * 0.06 }}
+                className="rounded-2xl p-4 card-lift"
+                style={{
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-subtle)',
+                }}
+              >
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center"
+                  style={{ background: `${item.color}1E`, border: `1px solid ${item.color}55` }}
+                >
+                  <item.icon size={18} style={{ color: item.color }} />
+                </div>
+                <p className="display font-semibold mt-3" style={{ fontSize: 16, color: 'var(--text-primary)' }}>
+                  {item.title}
+                </p>
+                <p className="mono mt-1" style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.65 }}>
+                  {item.desc}
+                </p>
+              </motion.div>
+            ))}
+          </div>
 
-      {/* ── Stats ── */}
-      <section className="px-5 py-16 max-w-5xl mx-auto">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {STATS.map((s, i) => (
-            <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
-              className="text-center p-5 rounded-2xl" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)' }}>
-              <p className="display font-bold mb-1" style={{ fontSize: 'clamp(24px,4vw,36px)', color: 'var(--primary-light)', letterSpacing: '-0.04em' }}>
-                <AnimatedCounter target={s.value} />
-              </p>
-              <p className="mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>{s.label}</p>
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── Features ── */}
-      <section id="features" className="px-5 py-16 max-w-5xl mx-auto">
-        <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-10">
-          <p className="mono mb-2" style={{ fontSize: 11, color: 'var(--text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>How it works</p>
-          <h2 className="display font-bold" style={{ fontSize: 'clamp(24px,5vw,40px)', letterSpacing: '-0.03em', color: 'var(--text-primary)' }}>
-            Built for workers like you
-          </h2>
-        </motion.div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {FEATURES.map((f, i) => (
-            <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
-              className="card-lift rounded-2xl p-6" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)' }}>
-              <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-4"
-                style={{ background: `${f.color}18`, border: `1px solid ${f.color}30` }}>
-                <f.icon size={20} style={{ color: f.color }} />
-              </div>
-              <h3 className="display font-bold mb-2" style={{ fontSize: 18, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>{f.title}</h3>
-              <p className="mono" style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.65 }}>{f.desc}</p>
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── Platforms ── */}
-      <section className="px-5 py-12 max-w-5xl mx-auto">
-        <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="text-center mb-6">
-          <p className="mono" style={{ fontSize: 11, color: 'var(--text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Compatible Platforms</p>
-        </motion.div>
-        <div className="flex flex-wrap justify-center gap-2">
-          {PLATFORMS.map((p, i) => (
-            <motion.span key={p} initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ delay: i * 0.07 }}
-              className="pill" style={{ fontSize: 12, padding: '6px 14px' }}>
-              {p}
-            </motion.span>
-          ))}
-        </div>
-      </section>
-
-      {/* ── CTA ── */}
-      <section className="px-5 py-16 max-w-5xl mx-auto">
-        <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-          className="relative text-center rounded-3xl p-10 overflow-hidden"
-          style={{ background: 'linear-gradient(135deg,var(--bg-card),#0A1010)', border: '1px solid var(--border-brand)' }}>
-          <div className="absolute inset-0 pointer-events-none"
-            style={{ background: 'radial-gradient(ellipse 60% 60% at 50% 0%,rgba(13,148,136,0.12),transparent)' }} />
-          <div className="relative z-10">
-            <div className="w-14 h-14 mx-auto mb-5 rounded-2xl float flex items-center justify-center"
-              style={{ background: 'var(--primary-dim)', border: '1px solid var(--border-brand)' }}>
-              <Shield size={28} style={{ color: 'var(--primary-light)' }} />
+          <div className="mt-8">
+            <p className="mono mb-2" style={{ fontSize: 10, color: 'var(--text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+              Core Modules
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {MODULES.map((item, idx) => (
+                <motion.div
+                  key={item.title}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 + idx * 0.06 }}
+                  className="rounded-2xl p-4 card-lift"
+                  style={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)' }}
+                >
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${item.color}1F`, border: `1px solid ${item.color}55` }}>
+                    <item.icon size={18} style={{ color: item.color }} />
+                  </div>
+                  <p className="display font-semibold mt-3" style={{ fontSize: 15, color: 'var(--text-primary)' }}>
+                    {item.title}
+                  </p>
+                  <p className="mono mt-1" style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                    {item.desc}
+                  </p>
+                  <Link to={item.route} className="mono inline-flex items-center gap-1 mt-2" style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+                    Open <ArrowRight size={11} />
+                  </Link>
+                </motion.div>
+              ))}
             </div>
-            <h2 className="display font-bold mb-3"
-              style={{ fontSize: 'clamp(22px,5vw,36px)', letterSpacing: '-0.03em', color: 'var(--text-primary)' }}>
-              Your work deserves protection
-            </h2>
-            <p className="mono mb-6 mx-auto"
-              style={{ fontSize: 13, color: 'var(--text-secondary)', maxWidth: 400, lineHeight: 1.65 }}>
-              Join the infrastructure that's giving India's gig workers the social security they've always deserved.
-            </p>
-            <Link to="/dashboard"
-              className="inline-flex items-center gap-2 btn-press px-8 py-4 rounded-2xl display font-bold"
-              style={{ background: 'var(--primary)', color: 'white', fontSize: 15, boxShadow: '0 8px 32px rgba(13,148,136,0.35)' }}>
-              Get Started — It's Free <ArrowRight size={16} />
-            </Link>
-            <p className="mono mt-4" style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-              Secured by Polygon Amoy · Zero-knowledge proofs · Privacy-first
-            </p>
           </div>
-        </motion.div>
+        </div>
       </section>
 
-      {/* ── Footer ── */}
-      <footer className="px-5 py-8 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
-        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <Shield size={14} style={{ color: 'var(--primary-light)' }} />
-            <span className="mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>GigSecure Chain · 2026</span>
-          </div>
-          <p className="mono" style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-            Built for India's Code on Social Security 2020 · Polygon Amoy Testnet
-          </p>
+      <div className="fixed bottom-4 left-0 right-0 px-4 z-30 sm:hidden pointer-events-none">
+        <div className="max-w-lg mx-auto pointer-events-auto">
+          <button
+            onClick={() => setJudgeMode(true)}
+            className="w-full rounded-2xl py-3 display font-semibold btn-press"
+            style={{
+              background: 'linear-gradient(135deg, var(--primary), #0B7E74)',
+              color: 'white',
+              boxShadow: '0 10px 36px rgba(13,148,136,0.42)',
+              fontSize: 14,
+            }}
+          >
+            Judge Mode: 90s Guided Demo
+          </button>
         </div>
-      </footer>
+      </div>
+
+      <AnimatePresence>
+        {judgeMode && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="sheet-backdrop"
+            style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', padding: '0 12px' }}
+            onClick={() => setJudgeMode(false)}
+          >
+            <motion.div
+              initial={{ y: 80, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 80, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 420, damping: 36 }}
+              className="w-full max-w-lg rounded-t-3xl p-5"
+              style={{
+                background: 'var(--bg-surface)',
+                border: '1px solid var(--border-subtle)',
+                marginBottom: 'env(safe-area-inset-bottom)',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <p className="display font-semibold" style={{ fontSize: 17, color: 'var(--text-primary)' }}>
+                  BrinHack Judge Mode
+                </p>
+                <button
+                  onClick={() => setJudgeMode(false)}
+                  className="btn-press w-8 h-8 rounded-lg flex items-center justify-center"
+                  style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}
+                >
+                  <X size={14} style={{ color: 'var(--text-muted)' }} />
+                </button>
+              </div>
+
+              <p className="mono mb-3" style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                Use this exact flow for maximum clarity in 90 seconds. Each step maps to one or more judging criteria.
+              </p>
+
+              <div className="space-y-2">
+                {DEMO_STEPS.map((item) => (
+                  <Link
+                    key={item.step}
+                    to={item.route}
+                    onClick={() => setJudgeMode(false)}
+                    className="block rounded-2xl p-3 btn-press"
+                    style={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)' }}
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className="mono" style={{ fontSize: 11, color: 'var(--primary-light)', marginTop: 1 }}>
+                        {item.step}
+                      </span>
+                      <div className="flex-1">
+                        <p className="display font-semibold" style={{ fontSize: 14, color: 'var(--text-primary)' }}>
+                          {item.title}
+                        </p>
+                        <p className="mono" style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.55 }}>
+                          {item.detail}
+                        </p>
+                      </div>
+                      <ArrowRight size={14} style={{ color: 'var(--text-muted)' }} />
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

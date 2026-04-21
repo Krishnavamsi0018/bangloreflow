@@ -1,21 +1,20 @@
 import { useEffect, useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, ShieldCheck, Zap, FileText, UserCircle, MoreHorizontal, IndianRupee, Award, Lock, X } from 'lucide-react'
+import { LayoutDashboard, Zap, MapPin, ShieldCheck, UserCircle, MoreHorizontal, Home, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import AnimatedContent from './AnimatedContent'
 
 const MAIN_TABS = [
-  { path: '/dashboard',    icon: LayoutDashboard, label: 'Home'     },
-  { path: '/passport',     icon: ShieldCheck,     label: 'Passport' },
-  { path: '/slump-shield', icon: Zap,             label: 'Shield'   },
-  { path: '/claims',       icon: FileText,         label: 'Claims'   },
-  { path: '/profile',      icon: UserCircle,       label: 'Profile'  },
+  { path: '/dashboard', icon: LayoutDashboard, label: 'Home' },
+  { path: '/slump-shield', icon: Zap, label: 'Shield' },
+  { path: '/city', icon: MapPin, label: 'City' },
+  { path: '/passport', icon: ShieldCheck, label: 'Passport' },
+  { path: '/profile', icon: UserCircle, label: 'Profile' },
 ]
 
 const MORE_ITEMS = [
-  { path: '/benefits',   icon: IndianRupee, label: 'Benefits',   sub: 'EPF · ESI · Gratuity',    color: '#14B8A6' },
-  { path: '/nft-badges', icon: Award,       label: 'NFT Badges', sub: 'Achievements on-chain',   color: '#F59E0B' },
-  { path: '/zk-proof',   icon: Lock,        label: 'ZK Proof',   sub: 'Privacy-preserving proof', color: '#818CF8' },
+  { path: '/', icon: Home, label: 'Landing', sub: 'Pitch view for judges', color: '#14B8A6' },
+  { path: '/dashboard', icon: LayoutDashboard, label: 'Worker Dashboard', sub: 'Personal snapshot', color: '#F59E0B' },
 ]
 
 export default function BottomNav() {
@@ -60,7 +59,7 @@ export default function BottomNav() {
             >
               <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: 'var(--border-strong)' }} />
               <div className="flex items-center justify-between mb-4">
-                <p className="mono font-semibold" style={{ fontSize: 12, color: 'var(--text-secondary)' }}>More features</p>
+                <p className="mono font-semibold" style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Quick shortcuts</p>
                 <button onClick={() => setShowMore(false)} className="btn-press w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
                   <X size={13} style={{ color: 'var(--text-muted)' }} />
                 </button>

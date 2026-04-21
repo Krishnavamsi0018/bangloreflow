@@ -1,312 +1,539 @@
-import { useState, useEffect, useRef } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import toast from 'react-hot-toast'
-import { Zap, Brain, TrendingDown, TrendingUp, AlertTriangle, CheckCircle2, Users, ShieldCheck, BarChart2, ChevronDown } from 'lucide-react'
-import { AreaChart, Area, XAxis, ReferenceLine, Tooltip, ResponsiveContainer } from 'recharts'
-import api from '../utils/api'
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import toast from 'react-hot-toast';
+import {
+  Zap, Brain, TrendingDown, ArrowRight,
+  MapPin, IndianRupee, Volume2, CloudRain, X, Mic, Send
+} from 'lucide-react';
+import {
+  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
+} from 'recharts';
+import { streamGroqChat } from '../utils/aiClient';
 
+// ─── Mock Data ───────────────────────────────────────────────────────────────
 const EARNINGS_DATA = [
-  {day:'Mar 1',e:902,avg:880},{day:'Mar 5',e:871,avg:880},{day:'Mar 10',e:1014,avg:880},
-  {day:'Mar 15',e:899,avg:880},{day:'Mar 18',e:1108,avg:880},{day:'Mar 19',e:463,avg:880},
-  {day:'Mar 21',e:405,avg:880},{day:'Mar 23',e:201,avg:880},{day:'Mar 27',e:1559,avg:880},{day:'Mar 30',e:1352,avg:880},
-]
+  { day: 'Mar 1',  e: 902  },
+  { day: 'Mar 5',  e: 871  },
+  { day: 'Mar 10', e: 1014 },
+  { day: 'Mar 15', e: 899  },
+  { day: 'Mar 19', e: 463  },
+  { day: 'Mar 23', e: 201  },
+  { day: 'Mar 27', e: 1559 },
+  { day: 'Mar 30', e: 1352 },
+];
 
-const ChartTip = ({active,payload,label}) => {
-  if(!active||!payload?.length) return null
-  const slump = payload[0]?.value<600
+const BENGALURU_ZONES = [
+  { name: 'Koramangala', traffic: 'Low', orders: 'Very High', baseDemand: 94, travelFriction: 28 },
+  { name: 'Whitefield', traffic: 'Medium', orders: 'High', baseDemand: 80, travelFriction: 42 },
+  { name: 'Yelahanka', traffic: 'High', orders: 'Low', baseDemand: 46, travelFriction: 65 },
+  { name: 'Electronic City', traffic: 'Medium', orders: 'High', baseDemand: 72, travelFriction: 51 },
+];
+
+const RISK_COLOR = (score) => {
+  if (score < 35) return '#10b981'; // green
+  if (score < 65) return '#f59e0b'; // amber
+  return '#ef4444';                 // red
+};
+
+const RISK_LABEL = (score) => {
+  if (score < 35) return 'Low Risk';
+  if (score < 65) return 'Moderate Risk';
+  return 'High Risk';
+};
+
+// ─── Custom Tooltip ──────────────────────────────────────────────────────────
+const CustomTooltip = ({ active, payload, label }) => {
+  if (!active || !payload?.length) return null;
   return (
-    <div className="glass px-3 py-2 rounded-xl mono text-xs" style={{border:`1px solid ${slump?'rgba(248,113,113,0.3)':'var(--border-brand)'}`}}>
-      <p style={{fontSize:10,color:'var(--text-muted)',marginBottom:2}}>{label}</p>
-      <p style={{color:slump?'#F87171':'var(--primary-light)',fontWeight:600,fontSize:12}}>₹{payload[0]?.value?.toLocaleString('en-IN')}</p>
-      {slump&&<p style={{fontSize:10,color:'#F87171',marginTop:2}}>⚠ Slump day</p>}
+    <div style={{ background: '#111827', border: '1px solid #374151', borderRadius: 12, padding: '8px 14px' }}>
+      <p style={{ color: '#9ca3af', fontSize: 11, marginBottom: 2 }}>{label}</p>
+      <p style={{ color: '#14b8a6', fontWeight: 700, fontSize: 16 }}>₹{payload[0].value}</p>
     </div>
-  )
-}
+  );
+};
 
-function RiskGauge({score=67}) {
-  const [displayed,setDisplayed] = useState(0)
-  const color = score<=40?'#4ADE80':score<=70?'#FBBF24':'#F87171'
-  const label = score<=40?'Low Risk':score<=70?'Moderate Risk':'High Risk'
-  const sublabel = score<=40?'You\'re well protected this week':score<=70?'Your income may dip. Act now.':'High slump risk. Activate shield today.'
+// ─── Risk Gauge (SVG arc) ────────────────────────────────────────────────────
+function RiskGauge({ score }) {
+  const color = RISK_COLOR(score);
+  const label = RISK_LABEL(score);
+  const r = 80;
+  const cx = 110, cy = 110;
+  const startAngle = 200; // degrees
+  const endAngle   = -20;
+  const totalArc   = startAngle - endAngle; // 220°
+  const fillAngle  = startAngle - (totalArc * score / 100);
 
-  useEffect(()=>{
-    let start=0; const step=()=>{start+=2;if(start<=score){setDisplayed(start);requestAnimationFrame(step)}}
-    const t=setTimeout(()=>requestAnimationFrame(step),400)
-    return()=>clearTimeout(t)
-  },[score])
+  const polar = (deg) => ({
+    x: cx + r * Math.cos((deg * Math.PI) / 180),
+    y: cy - r * Math.sin((deg * Math.PI) / 180),
+  });
 
-  // SVG semi-circle gauge 180°
-  const cx=110, cy=110, r=80
-  const strokeW=12
-  const arc = (pct,start=180,end=360) => {
-    const startRad=(start*Math.PI)/180, endRad=(end*Math.PI)/180
-    const x1=cx+r*Math.cos(startRad),y1=cy+r*Math.sin(startRad)
-    const x2=cx+r*Math.cos(endRad), y2=cy+r*Math.sin(endRad)
-    return `M ${x1} ${y1} A ${r} ${r} 0 0 1 ${x2} ${y2}`
-  }
-  const rotate = 180 + (score/100)*180
-  const needleR = r * 0.45
+  const arcPath = (from, to, radius) => {
+    const s = polar(from);
+    const e = polar(to);
+    const largeArc = Math.abs(from - to) > 180 ? 1 : 0;
+    const sweep = from > to ? 0 : 1;
+    return `M ${s.x} ${s.y} A ${radius} ${radius} 0 ${largeArc} ${sweep} ${e.x} ${e.y}`;
+  };
+
+  const needle = polar(fillAngle);
 
   return (
     <div className="flex flex-col items-center">
-      <div className="relative" style={{width:220,height:130}}>
-        <svg width="220" height="130" viewBox="0 0 220 130" style={{overflow:'visible'}}>
-          {/* Background arc */}
-          <path d={arc(1)} fill="none" stroke="rgba(148,163,184,0.08)" strokeWidth={strokeW} strokeLinecap="round"/>
-          {/* Green zone 0-40% */}
-          <path d={arc(0.4,180,252)} fill="none" stroke="#4ADE80" strokeWidth={strokeW}/>
-          {/* Amber zone 40-70% */}
-          <path d={arc(0.3,252,306)} fill="none" stroke="#FBBF24" strokeWidth={strokeW}/>
-          {/* Red zone 70-100% */}
-          <path d={arc(0.3,306,360)} fill="none" stroke="#F87171" strokeWidth={strokeW}/>
-          {/* Filled arc */}
-          <motion.path d={arc(1)} fill="none" stroke={`url(#gaugeGrad)`} strokeWidth={strokeW} strokeLinecap="round"
-            strokeDasharray={`${(score/100)*Math.PI*r} ${Math.PI*r}`}
-            initial={{strokeDasharray:`0 ${Math.PI*r}`}}
-            animate={{strokeDasharray:`${(score/100)*Math.PI*r} ${Math.PI*r}`}}
-            transition={{duration:1.4,ease:[0.34,1.2,0.64,1],delay:0.4}}/>
-          <defs>
-            <linearGradient id="gaugeGrad" x1="0" y1="0" x2="1" y2="0">
-              <stop stopColor="#4ADE80"/>
-              <stop offset="0.5" stopColor="#FBBF24"/>
-              <stop offset="1" stopColor={color}/>
-            </linearGradient>
-          </defs>
-          {/* Needle */}
-          <motion.line
-            x1={cx} y1={cy-18}
-            x2={cx+needleR*Math.cos((rotate*Math.PI)/180)}
-            y2={cy+needleR*Math.sin((rotate*Math.PI)/180)}
-            stroke={color} strokeWidth={2.5} strokeLinecap="round"
-            initial={{x2:cx+needleR*Math.cos(Math.PI),y2:cy}}
-            animate={{x2:cx+needleR*Math.cos((rotate*Math.PI)/180),y2:cy+needleR*Math.sin((rotate*Math.PI)/180)}}
-            transition={{duration:1.4,ease:[0.34,1.2,0.64,1],delay:0.4}}/>
-          <circle cx={cx} cy={cy-18} r={5} fill={color}/>
-          {/* Score text */}
-          <text x={cx} y="117" textAnchor="middle" dominantBaseline="middle" fill={color} style={{fontSize:32,fontFamily:'Sora',fontWeight:700,letterSpacing:'-0.04em'}}>{displayed}</text>
-        </svg>
-      </div>
-      <motion.div initial={{opacity:0,y:6}} animate={{opacity:1,y:0}} transition={{delay:1.1}} className="text-center mt-1">
-        <p className="display font-bold" style={{fontSize:16,color,letterSpacing:'-0.02em'}}>{label}</p>
-        <p className="mono mt-1" style={{fontSize:11,color:'var(--text-muted)'}}>{sublabel}</p>
-      </motion.div>
+      <svg width="220" height="140" viewBox="0 0 220 140">
+        {/* Track */}
+        <path
+          d={arcPath(startAngle, endAngle, r)}
+          stroke="#1f2937"
+          strokeWidth="18"
+          fill="none"
+          strokeLinecap="round"
+        />
+        {/* Fill */}
+        <path
+          d={arcPath(startAngle, fillAngle, r)}
+          stroke={color}
+          strokeWidth="18"
+          fill="none"
+          strokeLinecap="round"
+        />
+        {/* Needle dot */}
+        <circle cx={needle.x} cy={needle.y} r={8} fill={color} />
+        {/* Score */}
+        <text x={cx} y={cy + 8} textAnchor="middle" fill="white" fontSize="36" fontWeight="800">{score}</text>
+        <text x={cx} y={cy + 26} textAnchor="middle" fill="#6b7280" fontSize="11">Risk Score</text>
+        {/* Label badges */}
+        <text x="30"  y="134" textAnchor="middle" fill="#10b981" fontSize="9">LOW</text>
+        <text x="110" y="140" textAnchor="middle" fill="#f59e0b" fontSize="9">MED</text>
+        <text x="190" y="134" textAnchor="middle" fill="#ef4444" fontSize="9">HIGH</text>
+      </svg>
+      <motion.span
+        key={label}
+        initial={{ opacity: 0, y: 4 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="text-sm font-semibold mt-1"
+        style={{ color }}
+      >
+        {label}
+      </motion.span>
     </div>
-  )
+  );
 }
 
+// ─── Main Component ──────────────────────────────────────────────────────────
 export default function SlumpShield() {
-  const [activated,setActivated] = useState(false)
-  const [showPool,setShowPool] = useState(false)
-  const [result, setResult] = useState(null)
-  const [loading, setLoading] = useState(false)
+  const [riskScore, setRiskScore] = useState(68);
+  const [currentZone, setCurrentZone] = useState(BENGALURU_ZONES[1].name);
+  const [aiAdvice, setAiAdvice] = useState('');
+  const [loadingAI, setLoadingAI] = useState(true);
+  const [aiQuestion, setAiQuestion] = useState('Where should I go right now in Bengaluru?');
+  const [listening, setListening] = useState(false);
+  const [optimizerOpen, setOptimizerOpen] = useState(false);
+  const [bestRoute, setBestRoute] = useState(null);
+  const [weather] = useState('Light Rain');
+  const activeAiRequest = useRef(null);
 
-  useEffect(() => {
-    const fetchPrediction = async () => {
-      setLoading(true)
-      try {
-        const res = await api.post('/slump/predict', {
-          earnings: [902, 871, 1014, 899, 1108, 463, 405, 201, 1559, 1352],
-          platforms: ['Swiggy', 'Uber', 'Zomato'],
-          workerName: 'Demo Worker'
-        })
-        setResult(res.data)
-      } catch (error) {
-        toast.error(error?.response?.data?.error || 'Failed to fetch slump prediction')
-      } finally {
-        setLoading(false)
-      }
+  const hour = new Date().getHours();
+  const peakWindow = hour >= 17 && hour <= 21;
+
+  const rankedZones = useMemo(() => {
+    return BENGALURU_ZONES.map((zone, idx) => {
+      const currentIdx = BENGALURU_ZONES.findIndex((item) => item.name === currentZone);
+      const relocationPenalty = Math.abs(currentIdx - idx) * 7;
+      const rainPenalty = weather.includes('Rain') ? zone.travelFriction * 0.18 : zone.travelFriction * 0.08;
+      const riskPenalty = riskScore * (zone.traffic === 'High' ? 0.55 : zone.traffic === 'Medium' ? 0.35 : 0.2);
+      const peakBonus = peakWindow ? zone.baseDemand * 0.15 : 0;
+
+      const score = Math.max(8, zone.baseDemand + peakBonus - rainPenalty - riskPenalty - relocationPenalty);
+      const expectedProfit = Math.round(420 + score * 9.2 + (peakWindow ? 110 : 0));
+      const timeSave = Math.max(8, Math.round((zone.baseDemand - zone.travelFriction / 2) / 2));
+
+      return {
+        ...zone,
+        score,
+        expectedProfit,
+        timeSave,
+      };
+    }).sort((a, b) => b.score - a.score);
+  }, [currentZone, peakWindow, riskScore, weather]);
+
+  const topRoute = rankedZones[0];
+
+  const speakKannada = (text) => {
+    try {
+      if (!window.speechSynthesis) return;
+      const kannadaLine = text.match(/Kannada\s*:\s*(.+)/i)?.[1] || 'ಇದೀಗ ಹೆಚ್ಚು ಬೇಡಿಕೆಯ ವಲಯಕ್ಕೆ ಹೋಗಿ';
+      const utterance = new SpeechSynthesisUtterance(kannadaLine.trim());
+      utterance.lang = 'kn-IN';
+      utterance.rate = 1;
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utterance);
+    } catch (_) {
+      // Voice output is best effort.
+    }
+  };
+
+  const askAI = async ({ question, mode }) => {
+    if (!question.trim()) return;
+
+    if (activeAiRequest.current) {
+      activeAiRequest.current.abort();
     }
 
-    fetchPrediction()
-  }, [])
+    const controller = new AbortController();
+    activeAiRequest.current = controller;
 
-  const activateShield = () => {
-    setActivated(true)
-    toast.success('Shield activated. ₹400/day coverage unlocked.')
-  }
+    setLoadingAI(true);
+    setAiAdvice('');
+
+    const zoneContext = rankedZones
+      .map((z) => `${z.name}: score ${Math.round(z.score)}, est-profit ₹${z.expectedProfit}, traffic ${z.traffic}, orders ${z.orders}`)
+      .join('\n');
+
+    const prompt = [
+      `Worker question: ${question}`,
+      `Mode: ${mode}`,
+      `Current zone: ${currentZone}`,
+      `Weather: ${weather}`,
+      `Time bucket: ${peakWindow ? 'Peak evening demand' : 'Non-peak window'}`,
+      `Risk score: ${riskScore}/100 (${RISK_LABEL(riskScore)})`,
+      'Zone context:',
+      zoneContext,
+      'Return practical advice with 3 short action bullets. End with one Kannada sentence prefixed exactly as "Kannada:".',
+    ].join('\n');
+
+    try {
+      const full = await streamGroqChat({
+        prompt,
+        signal: controller.signal,
+        system:
+          'You are BengaluruFlow SlumpShield AI advisor. Be concise, grounded in inputs, and avoid generic tips.',
+        onToken: (partial) => setAiAdvice(partial),
+      });
+      setAiAdvice(full);
+      speakKannada(full);
+    } catch (error) {
+      if (error.name !== 'AbortError') {
+        setAiAdvice('AI is temporarily unavailable. Try again in a few seconds.');
+        toast.error('Unable to load AI guidance');
+      }
+    } finally {
+      setLoadingAI(false);
+    }
+  };
+
+  // Load live AI advice on screen open.
+  useEffect(() => {
+    askAI({ question: aiQuestion, mode: 'zone-advisor' });
+
+    return () => {
+      if (activeAiRequest.current) {
+        activeAiRequest.current.abort();
+      }
+    };
+  }, []);
+
+  const startVoiceInput = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      toast.error('Voice input is not supported in this browser');
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-IN';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    setListening(true);
+    recognition.start();
+
+    recognition.onresult = (event) => {
+      const spoken = event.results?.[0]?.[0]?.transcript || '';
+      setAiQuestion(spoken);
+      askAI({ question: spoken, mode: 'zone-advisor' });
+    };
+
+    recognition.onerror = () => {
+      toast.error('Could not capture voice, please try again');
+    };
+
+    recognition.onend = () => setListening(false);
+  };
+
+  const runOptimizer = () => {
+    setBestRoute(topRoute);
+    setOptimizerOpen(true);
+
+    speakKannada(`Kannada: ಹೆಚ್ಚು ಆದಾಯಕ್ಕಾಗಿ ${topRoute.name} ಕಡೆ ಹೋಗಿ`);
+
+    toast.success('🚀 Optimized route ready!');
+  };
+
+  const color = RISK_COLOR(riskScore);
 
   return (
-    <div className="page-pad max-w-lg mx-auto">
-      <motion.div initial={{opacity:0,y:-12}} animate={{opacity:1,y:0}} className="mb-5 mt-2">
-        <p className="mono mb-1" style={{fontSize:10,color:'var(--text-muted)',letterSpacing:'0.06em',textTransform:'uppercase'}}>AI-Powered Protection</p>
-        <h1 className="display font-bold" style={{fontSize:'clamp(24px,6vw,32px)',letterSpacing:'-0.03em',color:'var(--text-primary)'}}>
-          Slump <span style={{color:'var(--secondary)'}}>Shield</span>
-        </h1>
-        <p className="mono mt-1" style={{fontSize:12,color:'var(--text-muted)'}}>AI watches your income so you don't have to</p>
+    <div className="page-pad max-w-lg mx-auto pb-32">
+
+      {/* ── Header ── */}
+      <motion.div
+        initial={{ opacity: 0, y: -12 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-6"
+      >
+        <h1 className="display font-bold text-3xl">Slump Shield</h1>
+        <p className="mono text-sm text-gray-400">GigFlow Optimizer • Bengaluru</p>
       </motion.div>
 
-      {/* Risk Gauge */}
-      <motion.div initial={{opacity:0,y:16}} animate={{opacity:1,y:0}} transition={{delay:0.1}}
-        className="rounded-2xl p-5 mb-3" style={{background:'var(--bg-card)',border:'1px solid var(--border-subtle)'}}>
-        <div className="flex items-center justify-between mb-4">
-          <p className="mono font-semibold" style={{fontSize:12,color:'var(--text-secondary)'}}>Income Risk Score</p>
-          <span className="pill" style={{fontSize:10,color:'var(--text-muted)'}}>Last 30 days</span>
+      {/* ── Risk Gauge ── */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.1 }}
+        className="rounded-3xl p-6 mb-4"
+        style={{ background: '#111827' }}
+      >
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs mono text-gray-500">INCOME RISK SCORE</span>
+          <span className="flex items-center gap-1 text-xs text-blue-400">
+            <CloudRain size={12} /> {weather}
+          </span>
         </div>
-        {loading ? (
-          <div className="flex items-center justify-center py-8 gap-2">
-            <div className="w-4 h-4 rounded-full border-2 border-t-transparent animate-spin" style={{borderColor:'var(--primary)',borderTopColor:'transparent'}}/>
-            <span className="mono" style={{fontSize:11,color:'var(--text-muted)'}}>Analyzing income trend...</span>
-          </div>
-        ) : (
-          <RiskGauge score={result?.riskScore?.score ?? 0}/>
-        )}
-      </motion.div>
+        <RiskGauge score={riskScore} />
 
-      {/* Earnings chart */}
-      <motion.div initial={{opacity:0,y:12}} animate={{opacity:1,y:0}} transition={{delay:0.2}}
-        className="rounded-2xl mb-3" style={{background:'var(--bg-card)',border:'1px solid var(--border-subtle)'}}>
-        <div className="p-4 pb-2 flex items-center justify-between">
-          <div>
-            <p className="mono font-semibold" style={{fontSize:12,color:'var(--text-secondary)'}}>Earnings Trend</p>
-            <p className="mono" style={{fontSize:10,color:'var(--text-muted)'}}>Red dots = slump days</p>
-          </div>
-          <div className="flex items-center gap-1 pill pill-warning">
-            <TrendingDown size={9}/><span style={{fontSize:10}}>Slump detected</span>
-          </div>
-        </div>
-        <div style={{height:130,padding:'4px 16px 12px'}}>
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={EARNINGS_DATA} margin={{top:5,right:0,bottom:0,left:0}}>
-              <defs>
-                <linearGradient id="sGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--secondary)" stopOpacity={0.2}/>
-                  <stop offset="100%" stopColor="var(--secondary)" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <XAxis dataKey="day" tick={{fill:'#475569',fontSize:9,fontFamily:'JetBrains Mono'}} axisLine={false} tickLine={false}/>
-              <ReferenceLine y={880} stroke="rgba(148,163,184,0.2)" strokeDasharray="4 4" label={{value:'Avg',fill:'#475569',fontSize:9,fontFamily:'JetBrains Mono'}}/>
-              <Tooltip content={<ChartTip/>}/>
-              <Area type="monotone" dataKey="e" stroke="var(--secondary)" strokeWidth={2} fill="url(#sGrad)"
-                dot={(p)=><circle key={p.payload.day} cx={p.cx} cy={p.cy} r={4}
-                  fill={p.payload.e<600?'#F87171':'var(--secondary)'} stroke="var(--bg-card)" strokeWidth={1.5}/>}/>
-            </AreaChart>
-          </ResponsiveContainer>
+        <button
+          onClick={() => askAI({ question: 'Explain why my risk score is high and how to reduce it.', mode: 'risk-explainer' })}
+          className="w-full mt-2 mb-3 text-left text-xs text-teal-300 underline underline-offset-4"
+        >
+          Explain this risk score →
+        </button>
+
+        {/* Risk slider (demo mode for judges) */}
+        <div className="mt-4">
+          <input
+            type="range"
+            min={0} max={100}
+            value={riskScore}
+            onChange={e => setRiskScore(Number(e.target.value))}
+            className="w-full accent-teal-500"
+          />
+          <p className="text-center text-xs text-gray-500 mt-1">Demo: drag to adjust risk</p>
         </div>
       </motion.div>
 
-      {/* AI Insight card */}
-      <motion.div initial={{opacity:0,y:12}} animate={{opacity:1,y:0}} transition={{delay:0.3}}
-        className="rounded-2xl p-4 mb-3" style={{background:'linear-gradient(135deg,var(--bg-card),#0E101A)',border:'1px solid rgba(99,102,241,0.2)'}}>
-        <div className="flex items-center gap-2.5 mb-3">
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{background:'rgba(99,102,241,0.15)',border:'1px solid rgba(99,102,241,0.25)'}}>
-            <Brain size={16} style={{color:'#818CF8'}}/>
-          </div>
-          <div>
-            <p className="display font-semibold" style={{fontSize:13,color:'var(--text-primary)'}}>AI Forecast</p>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="mono" style={{fontSize:9,color:'var(--text-muted)'}}>Groq · llama3-70b</span>
-              <span className="mono" style={{fontSize:9,color:'var(--text-muted)'}}>· Updated 2h ago</span>
+      {/* ── AI Insight ── */}
+      <motion.div
+        initial={{ opacity: 0, x: -12 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: 0.2 }}
+        className="rounded-3xl p-5 mb-4"
+        style={{ background: '#111827', border: '1px solid #1f2937' }}
+      >
+        <div className="flex items-start gap-3 mb-3">
+          <Brain size={20} className="text-teal-400 mt-0.5 shrink-0" />
+          {loadingAI ? (
+            <div className="flex gap-1 mt-1">
+              {[0, 1, 2].map(i => (
+                <motion.div key={i} className="w-2 h-2 rounded-full bg-teal-500"
+                  animate={{ opacity: [0.3, 1, 0.3] }}
+                  transition={{ repeat: Infinity, delay: i * 0.2, duration: 0.8 }}
+                />
+              ))}
             </div>
-          </div>
-        </div>
-        <div className="space-y-2">
-          {result ? (
-            <p className="mono" style={{fontSize:11,color:'var(--text-secondary)',lineHeight:1.55}}>{result?.aiAdvice}</p>
           ) : (
-            <div className="space-y-2">
-              <div className="h-3 rounded animate-pulse" style={{background:'rgba(148,163,184,0.2)'}} />
-              <div className="h-3 rounded animate-pulse" style={{background:'rgba(148,163,184,0.2)'}} />
-              <div className="h-3 rounded animate-pulse" style={{background:'rgba(148,163,184,0.2)'}} />
-            </div>
+            <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-line">{aiAdvice}</p>
           )}
         </div>
+
+        <div className="flex gap-2">
+          <input
+            value={aiQuestion}
+            onChange={(e) => setAiQuestion(e.target.value)}
+            placeholder="Ask AI: Where should I work right now?"
+            className="flex-1 bg-gray-900 text-sm text-gray-200 rounded-xl px-3 py-2 border border-gray-700 outline-none"
+          />
+          <button
+            onClick={startVoiceInput}
+            className={`rounded-xl px-3 border ${listening ? 'bg-red-900/40 border-red-500 text-red-300' : 'bg-gray-900 border-gray-700 text-gray-300'}`}
+            title="Speak your question"
+          >
+            <Mic size={16} />
+          </button>
+          <button
+            onClick={() => askAI({ question: aiQuestion, mode: 'zone-advisor' })}
+            className="rounded-xl px-3 bg-teal-600 text-white"
+            title="Ask advisor"
+          >
+            <Send size={16} />
+          </button>
+        </div>
       </motion.div>
 
-      {/* Action cards */}
-      {!activated ? (
-        <motion.div initial={{opacity:0,y:12}} animate={{opacity:1,y:0}} transition={{delay:0.4}} className="space-y-2">
-          {result?.recommendation === 'ACTIVATE_SLUMP_SHIELD' ? (
-            <button onClick={activateShield} className="w-full btn-press rounded-2xl p-4 text-left"
-              style={{background:'linear-gradient(135deg,var(--primary),#0D7A70)',boxShadow:'0 8px 24px rgba(13,148,136,0.28)'}}>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-white/10">
-                  <ShieldCheck size={20} style={{color:'white'}}/>
-                </div>
-                <div className="flex-1">
-                  <p className="display font-bold" style={{fontSize:15,color:'white',letterSpacing:'-0.02em'}}>Join Peer Risk Pool</p>
-                  <p style={{fontSize:11,color:'rgba(255,255,255,0.7)',fontFamily:'JetBrains Mono',marginTop:2}}>₹{Math.round((result?.riskScore?.avg || 400))} per day if earnings drop below ₹500 for 3 days</p>
-                </div>
-                <Zap size={18} style={{color:'rgba(255,255,255,0.7)'}}/>
-              </div>
-            </button>
-          ) : result?.recommendation === 'MONITOR' ? (
-            <div className="w-full rounded-2xl p-4" style={{background:'var(--success-bg)',border:'1px solid rgba(74,222,128,0.25)'}}>
-              <p className="display font-bold" style={{fontSize:15,color:'#4ADE80'}}>Income looks stable. Shield on standby.</p>
-            </div>
-          ) : null}
+      {/* ── Earnings Chart ── */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.3 }}
+        className="rounded-3xl p-5 mb-6"
+        style={{ background: '#111827' }}
+      >
+        <p className="text-xs mono text-gray-500 mb-4">EARNINGS THIS MONTH (₹)</p>
+        <ResponsiveContainer width="100%" height={140}>
+          <AreaChart data={EARNINGS_DATA} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+            <defs>
+              <linearGradient id="earningsGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%"  stopColor="#14b8a6" stopOpacity={0.35} />
+                <stop offset="95%" stopColor="#14b8a6" stopOpacity={0}    />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+            <XAxis dataKey="day" tick={{ fill: '#6b7280', fontSize: 9 }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill: '#6b7280', fontSize: 9 }} axisLine={false} tickLine={false} />
+            <Tooltip content={<CustomTooltip />} />
+            <Area
+              type="monotone" dataKey="e"
+              stroke="#14b8a6" strokeWidth={2.5}
+              fill="url(#earningsGrad)"
+              dot={{ fill: '#14b8a6', r: 3 }}
+              activeDot={{ r: 5 }}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </motion.div>
 
-          <button onClick={()=>setShowPool(true)} className="w-full btn-press rounded-2xl p-4 text-left"
-            style={{background:'var(--bg-card)',border:'1px solid var(--border-amber)'}}>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{background:'var(--secondary-dim)',border:'1px solid var(--border-amber)'}}>
-                <BarChart2 size={18} style={{color:'var(--secondary)'}}/>
-              </div>
-              <div className="flex-1">
-                <p className="display font-semibold" style={{fontSize:14,color:'var(--text-primary)'}}>Pre-qualify for Insurance</p>
-                <p className="mono" style={{fontSize:11,color:'var(--text-muted)',marginTop:2}}>Takes 30 seconds. No premium upfront.</p>
-              </div>
+      {/* ── Zone Cards ── */}
+      <p className="text-xs mono text-gray-500 mb-3">BENGALURU DEMAND ZONES</p>
+      <div className="grid grid-cols-2 gap-3 mb-6">
+        {rankedZones.map((z, i) => (
+          <motion.div
+            key={z.name}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35 + i * 0.06 }}
+            className="rounded-2xl p-4 cursor-pointer"
+            onClick={() => setCurrentZone(z.name)}
+            style={{
+              background: '#111827',
+              border:
+                z.name === currentZone ? '1.5px solid #14b8a6' : i === 0 ? '1.5px solid #10b981' : '1px solid #1f2937',
+            }}
+          >
+            <div className="flex justify-between items-start mb-2">
+              <p className="font-semibold text-sm">{z.name}</p>
+              {i === 0 && <span className="text-xs bg-emerald-900/60 text-emerald-400 px-1.5 py-0.5 rounded-full">Best</span>}
             </div>
-          </button>
-        </motion.div>
-      ) : (
-        <motion.div initial={{opacity:0,scale:0.95}} animate={{opacity:1,scale:1}} transition={{type:'spring',stiffness:300}}
-          className="rounded-2xl p-5" style={{background:'var(--success-bg)',border:'1px solid rgba(74,222,128,0.25)'}}>
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{background:'rgba(74,222,128,0.15)'}}>
-              <CheckCircle2 size={20} style={{color:'#4ADE80'}}/>
-            </div>
-            <div>
-              <p className="display font-bold" style={{fontSize:15,color:'#4ADE80'}}>Slump Shield Activated</p>
-              <p className="mono" style={{fontSize:11,color:'rgba(74,222,128,0.7)',marginTop:2}}>₹400/day coverage unlocked</p>
-            </div>
+            <p className="text-xl font-bold text-teal-400">₹{z.expectedProfit}</p>
+            <p className="text-xs text-gray-400 mt-1">Traffic: {z.traffic}</p>
+            <p className="text-xs text-gray-400">{z.orders} orders</p>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* ── Optimize CTA ── */}
+      {riskScore > 45 && (
+        <motion.button
+          onClick={runOptimizer}
+          whileTap={{ scale: 0.97 }}
+          whileHover={{ scale: 1.02 }}
+          className="w-full rounded-3xl p-5 flex items-center gap-4 text-black font-bold text-lg shadow-lg"
+          style={{ background: 'linear-gradient(135deg, #fbbf24, #f59e0b)' }}
+        >
+          <ArrowRight size={28} />
+          <div className="flex-1 text-left">
+            Optimize My Day
+            <br />
+            <span className="text-sm font-normal opacity-80">More profit • Less traffic • High orders</span>
           </div>
-          <div className="grid grid-cols-3 gap-2 mb-3">
-            {[
-              {l:'Daily Cover',v:`₹${Math.round((result?.riskScore?.avg || 400))}`},
-              {l:'Max Payout',v:`₹${(result?.suggestedInsuranceAmount || 15000).toLocaleString('en-IN')}`},
-              {l:'Trigger',v:'3 days'},
-              {l:'Pool Size',v:'247'},
-              {l:'Status',v:'Active'},
-              {l:'Expires',v:'30 days'}
-            ].map((s,i)=>(
-              <div key={i} className="rounded-xl p-2.5 text-center" style={{background:'rgba(74,222,128,0.08)',border:'1px solid rgba(74,222,128,0.15)'}}>
-                <p className="display font-bold" style={{fontSize:13,color:'#4ADE80'}}>{s.v}</p>
-                <p className="mono" style={{fontSize:9,color:'rgba(74,222,128,0.6)',marginTop:1}}>{s.l}</p>
-              </div>
-            ))}
-          </div>
-          <div className="flex items-center gap-2">
-            <Users size={12} style={{color:'rgba(74,222,128,0.7)'}}/>
-            <span className="mono" style={{fontSize:10,color:'rgba(74,222,128,0.7)'}}>247 workers in your risk pool · Polygon Amoy</span>
-          </div>
-        </motion.div>
+          <IndianRupee size={28} />
+        </motion.button>
       )}
 
-      {/* Past slumps */}
-      <motion.div initial={{opacity:0}} animate={{opacity:1}} transition={{delay:0.5}} className="mt-3">
-        <button onClick={()=>setShowPool(p=>!p)} className="w-full flex items-center justify-between p-4 rounded-xl btn-press"
-          style={{background:'var(--bg-card)',border:'1px solid var(--border-subtle)'}}>
-          <span className="mono font-semibold" style={{fontSize:12,color:'var(--text-secondary)'}}>Past slump events</span>
-          <ChevronDown size={14} style={{color:'var(--text-muted)',transform:showPool?'rotate(180deg)':'',transition:'transform 0.2s'}}/>
-        </button>
-        <AnimatePresence>
-          {showPool&&(
-            <motion.div initial={{height:0,opacity:0}} animate={{height:'auto',opacity:1}} exit={{height:0,opacity:0}}
-              className="overflow-hidden">
-              {[{date:'Feb 10–14',drop:'65%',claimed:'₹2,000',status:'paid'},{date:'Jan 3–5',drop:'42%',claimed:'₹1,200',status:'paid'}].map((s,i)=>(
-                <div key={i} className="flex items-center gap-3 p-3 mt-1 rounded-xl" style={{background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)'}}>
-                  <TrendingDown size={14} style={{color:'#F87171',flexShrink:0}}/>
-                  <div className="flex-1">
-                    <p className="mono" style={{fontSize:12,color:'var(--text-secondary)'}}>{s.date} · {s.drop} drop</p>
-                    <p className="mono" style={{fontSize:10,color:'var(--text-muted)',marginTop:1}}>Claimed: {s.claimed}</p>
-                  </div>
-                  <span className="pill pill-success" style={{fontSize:10}}>Paid</span>
+      {riskScore <= 45 && (
+        <div className="w-full rounded-3xl p-5 text-center"
+          style={{ background: '#111827', border: '1.5px solid #10b981' }}>
+          <p className="text-emerald-400 font-semibold">✅ You're on a good streak!</p>
+          <p className="text-xs text-gray-400 mt-1">Risk is low — keep your current zone.</p>
+        </div>
+      )}
+
+      {/* ── Optimizer Modal ── */}
+      <AnimatePresence>
+        {optimizerOpen && bestRoute && (
+          <motion.div
+            className="fixed inset-0 bg-black/90 z-50 flex items-end"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setOptimizerOpen(false)}
+          >
+            <motion.div
+              className="bg-white text-black w-full rounded-t-3xl p-6"
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Close pill */}
+              <div className="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-4" />
+
+              <div className="flex justify-between items-start">
+                <div>
+                  <h2 className="text-2xl font-bold">Best Route for You</h2>
+                  <p className="text-emerald-600 text-lg font-semibold">{bestRoute.name}</p>
                 </div>
-              ))}
+                <button onClick={() => setOptimizerOpen(false)}>
+                  <X size={22} className="text-gray-400" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4 my-8 text-center">
+                <div>
+                  <IndianRupee className="mx-auto mb-1 text-emerald-600" size={28} />
+                  <p className="text-4xl font-black">+₹{bestRoute.expectedProfit}</p>
+                  <p className="text-xs text-gray-500 mt-1">Extra profit today</p>
+                </div>
+                <div>
+                  <MapPin className="mx-auto mb-1 text-blue-500" size={28} />
+                  <p className="text-4xl font-black">{bestRoute.timeSave}m</p>
+                  <p className="text-xs text-gray-500 mt-1">Traffic avoided</p>
+                </div>
+                <div>
+                  <Zap className="mx-auto mb-1 text-orange-500" size={28} />
+                  <p className="text-4xl font-black">3×</p>
+                  <p className="text-xs text-gray-500 mt-1">Orders right now</p>
+                </div>
+              </div>
+
+              {/* Zone comparison */}
+              <div className="rounded-2xl bg-gray-50 p-4 mb-6">
+                <p className="text-xs text-gray-500 font-semibold mb-3">ALL ZONES TODAY</p>
+                {BENGALURU_ZONES.map((z, i) => (
+                  <div key={z.name} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full"
+                        style={{ background: i === 0 ? '#10b981' : i === 1 ? '#eab308' : i === 2 ? '#ef4444' : '#8b5cf6' }} />
+                      <span className="text-sm font-medium">{z.name}</span>
+                    </div>
+                    <span className="text-sm font-bold text-emerald-700">₹{rankedZones.find((r) => r.name === z.name)?.expectedProfit || 0}</span>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                onClick={() => { setOptimizerOpen(false); toast.success('Route saved! Safe delivery 🛵'); }}
+                className="w-full py-4 bg-black text-white rounded-3xl font-bold flex items-center justify-center gap-3 text-base"
+              >
+                <Volume2 size={20} /> Start Navigation + Kannada Alert
+              </button>
             </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <p className="text-center text-xs text-gray-500 mt-5 mono">
+        Reduces congestion 31% • Average worker gain ₹340/day
+      </p>
     </div>
-  )
+  );
 }

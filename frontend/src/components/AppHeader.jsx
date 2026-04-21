@@ -1,30 +1,26 @@
 import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { Bell, ChevronLeft } from 'lucide-react'
-import { useWallet } from '../context/WalletContext'
 import { motion } from 'framer-motion'
 
 const TITLES = {
-  '/dashboard':    'Dashboard',
-  '/passport':     'Gig Passport',
+  '/dashboard': 'Dashboard',
+  '/city': 'City Dashboard',
+  '/city-dashboard': 'City Dashboard',
+  '/passport': 'Gig Passport',
   '/slump-shield': 'Slump Shield',
-  '/claims':       'Claims',
-  '/benefits':     'Benefits',
-  '/nft-badges':   'NFT Badges',
-  '/zk-proof':     'ZK Proof',
-  '/profile':      'Profile',
+  '/profile': 'Profile',
 }
 
 // Root tabs — no back arrow on these
-const ROOT_TABS = ['/dashboard']
+const ROOT_TABS = ['/dashboard', '/city', '/city-dashboard']
 
 export default function AppHeader() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
-  const { account, isDemoMode } = useWallet()
 
   const normalizedPath = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname
 
-  const title = TITLES[normalizedPath] || 'GigSecure'
+  const title = TITLES[normalizedPath] || 'BengaluruFlow'
   const isRoot = ROOT_TABS.some(tab => normalizedPath === tab || normalizedPath.startsWith(`${tab}/`))
   const showBack = !isRoot
 
@@ -62,7 +58,7 @@ export default function AppHeader() {
                 </svg>
               </div>
               <span className="display font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
-                GigSecure
+                BengaluruFlow
               </span>
             </div>
           )}
@@ -95,18 +91,10 @@ export default function AppHeader() {
         {/* Right — wallet + notification */}
         <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
           <div className="flex items-center gap-2">
-            {isDemoMode && (
-              <div className="hidden sm:flex items-center gap-1.5 pill pill-warning">
-                <div className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                <span>Demo Mode</span>
-              </div>
-            )}
-            {account && (
-              <div className="hidden sm:flex items-center gap-1.5 pill pill-brand">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span>{account.slice(0, 6)}…{account.slice(-4)}</span>
-              </div>
-            )}
+            <div className="hidden sm:flex items-center gap-1.5 pill pill-brand">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span>Demo Ready</span>
+            </div>
             <Link
               to="/profile"
               className="relative w-9 h-9 rounded-xl flex items-center justify-center btn-press"
